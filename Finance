@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benchmarking Competitivo · Locadoras de Frota</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800&family=Encode+Sans+Condensed:wght@400;500;600;700&family=Encode+Sans+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#243782; --navy-2:#33489c; --navy-3:#5468b8; --navy-soft:#eaeefb;
+  --ink:#1a1f36; --muted:#6b7390; --line:#e4e7f1; --bg:#f3f4f9; --card:#ffffff;
+  --c-localiza:#046C2F; --c-movida:#FF4F01; --c-unidas:#007ED2; --c-lm:#D9D9D9;
+  --good:#1f8a5b; --bad:#c0392b; --gold:#c9a227;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Encode Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.num{font-family:'Encode Sans Condensed','Encode Sans',sans-serif;font-variant-numeric:tabular-nums}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+.side{background:var(--navy);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
+.brand .mark{font-family:'Encode Sans Semi Condensed';font-weight:700;letter-spacing:.14em;font-size:11px;color:var(--gold);text-transform:uppercase}
+.brand h1{font-size:17px;font-weight:700;margin-top:6px;line-height:1.2}
+.brand h1.titleY{color:#FFCB05;letter-spacing:.06em;font-weight:800;font-size:19px}
+.sidemeta{padding:12px 22px 18px}
+.sidemeta .lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.42);font-weight:600;padding:0 0 5px}
+.sidemeta .cos{font-size:11.5px;color:rgba(255,255,255,.72);font-weight:600;margin-bottom:12px}
+.brand p{font-size:11.5px;color:rgba(255,255,255,.6);margin-top:5px}
+.nav{padding:14px 12px;flex:1}
+.nav .lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.42);padding:8px 12px 6px;font-weight:600}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;color:rgba(255,255,255,.82);font-family:inherit;font-size:13.5px;font-weight:500;padding:10px 12px;border-radius:9px;cursor:pointer;text-align:left;transition:.15s}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button.active{background:#fff;color:var(--navy);font-weight:600}
+.nav button .ic{width:17px;height:17px;flex:none;opacity:.9}
+.nav button.active .ic{opacity:1}
+.side .foot{padding:13px 0 0;font-size:10.5px;color:rgba(255,255,255,.6);border-top:1px solid rgba(255,255,255,.14);line-height:1.7}
+.side .foot b{color:#fff;font-weight:700}
+
+.main{display:flex;flex-direction:column;min-width:0}
+/* ---------- topbar / filters ---------- */
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:14px 28px;position:sticky;top:0;z-index:20}
+.topbar .row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.pagetitle{margin-right:auto}
+.pagetitle h2{font-size:18px;font-weight:700}
+.pagetitle span{font-size:12px;color:var(--muted)}
+.fgroup{display:flex;align-items:center;gap:8px}
+.fgroup .flbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{border:0;background:none;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--muted);padding:6px 13px;border-radius:6px;cursor:pointer;transition:.15s}
+.seg button.on{background:var(--navy);color:#fff}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px 5px 9px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;user-select:none}
+.chip .dot{width:9px;height:9px;border-radius:50%}
+.chip.on{color:var(--ink);border-color:currentColor}
+.chip.off{opacity:.45}
+
+/* ---------- canvas ---------- */
+.canvas{padding:24px 28px 56px;max-width:1320px}
+.page{display:none;animation:fade .35s ease}
+.page.show{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.span2{grid-column:span 2}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h3{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card .sub{font-size:11.5px;color:var(--muted);margin-top:2px;margin-bottom:8px}
+.card .barK{width:4px;height:15px;border-radius:3px;background:var(--gold);display:inline-block}
+.sectionhead{display:flex;align-items:baseline;gap:12px;margin:30px 2px 14px}
+.sectionhead .n{font-family:'Encode Sans Semi Condensed';font-weight:700;font-size:12px;color:var(--gold);letter-spacing:.1em}
+.sectionhead h2{font-size:16px;font-weight:700}
+.sectionhead p{font-size:12px;color:var(--muted);margin-left:auto;max-width:520px;text-align:right}
+
+/* KPI tiles */
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 17px;position:relative;overflow:hidden}
+.kpi .co{font-size:11px;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:7px;color:var(--muted)}
+.kpi .co .dot{width:9px;height:9px;border-radius:50%}
+.kpi .big{font-family:'Encode Sans Condensed';font-weight:700;font-size:30px;line-height:1.05;margin-top:9px;letter-spacing:-.01em}
+.kpi .lbl{font-size:11px;color:var(--muted);margin-top:1px}
+.kpi .delta{font-size:11.5px;font-weight:600;margin-top:9px;display:inline-flex;align-items:center;gap:4px}
+.up{color:var(--good)} .down{color:var(--bad)}
+.kpi .edge{position:absolute;left:0;top:0;bottom:0;width:4px}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th,.tbl td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--bg)}
+.tbl td.metric{font-weight:600}
+.tbl tr.head td{background:var(--navy-soft);font-weight:700;color:var(--navy)}
+.tbl tr.tot td{font-weight:700;border-top:2px solid var(--navy);border-bottom:2px solid var(--navy)}
+.tbl tr.prop td{background:#fff3e6 !important}
+.tbl tr.prop.tot td{border-top-color:#f0a35a;border-bottom-color:#f0a35a}
+.tbl tr.prop td.metric{color:#b5651d}
+.propchip{display:inline-block;width:12px;height:12px;border-radius:3px;background:#fff3e6;border:1px solid #f0a35a;vertical-align:-2px;margin-right:6px}
+.tbl th.sep,.tbl td.sep{border-left:2px solid #c8cee0}
+.tbl td .pct{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:4px}
+.tbl .num{font-family:'Encode Sans Condensed';font-variant-numeric:tabular-nums}
+.heat{border-radius:5px;padding:2px 7px;font-weight:700}
+.scroll{overflow-x:auto}
+
+.chwrap{position:relative;height:300px}
+.chwrap.tall{height:360px}
+.chwrap.sm{height:240px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+.note{font-size:11.5px;color:var(--muted);line-height:1.55}
+.callout{background:var(--navy-soft);border-left:3px solid var(--navy);border-radius:0 10px 10px 0;padding:12px 15px;font-size:12.5px;line-height:1.55}
+.callout b{color:var(--navy)}
+ul.clean{list-style:none;display:flex;flex-direction:column;gap:9px}
+ul.clean li{display:flex;gap:10px;font-size:12.8px;line-height:1.5;align-items:flex-start}
+ul.clean li .tag{flex:none;font-family:'Encode Sans Condensed';font-weight:700;font-size:11px;padding:1px 7px;border-radius:5px;background:var(--navy-soft);color:var(--navy);margin-top:1px}
+ul.clean li .tag.r{background:#fbeae7;color:var(--bad)}
+ul.clean li .tag.g{background:#e7f3ec;color:var(--good)}
+ul.clean li .tag.o{background:#fbf2da;color:#9a7b13}
+.q{font-size:12.8px;line-height:1.5;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.q b{color:var(--navy)}
+.metawrap{display:flex;flex-direction:column;gap:10px}
+.metawrap h4{font-size:13px;font-weight:700;color:var(--navy);margin-top:4px}
+.metawrap p,.metawrap li{font-size:12.6px;line-height:1.6;color:#2c324d}
+.metawrap ul{padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.dredrop{display:flex;align-items:center;gap:9px}
+select{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);border-radius:9px;padding:7px 11px;background:var(--card);color:var(--ink);cursor:pointer}
+.pill{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--navy-soft);color:var(--navy)}
+.wm{font-family:'Encode Sans Semi Condensed','Encode Sans',sans-serif;font-weight:800;letter-spacing:.01em;color:var(--wc);display:inline-flex;align-items:center;line-height:1}
+.logo{height:20px;width:auto;max-width:150px;object-fit:contain;vertical-align:middle;display:inline-block}
+.dashfoot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:16px 26px 28px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line);margin-top:6px}
+.dashfoot b{color:var(--ink);font-weight:700}
+.dashfoot .sep{opacity:.5}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:820px){.shell{grid-template-columns:1fr}.side{position:static;height:auto;flex-direction:row;flex-wrap:wrap}.nav{display:flex;flex-wrap:wrap}.g4,.g3,.g2{grid-template-columns:1fr}.span2{grid-column:auto}.sectionhead p{display:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">FP&amp;A · Inteligência Competitiva</div>
+      <h1 class="titleY">PEERS COMPARISON</h1>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="lbl">Painéis</div>
+      <button data-pg="overview" class="active"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Overview Executivo</button>
+      <button data-pg="dre"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>DRE · Linha a Linha</button>
+      <button data-pg="kpi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 5-7"/></svg>KPIs Financeiros</button>
+      <button data-pg="mgmt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 16v-4M12 16V8M16 16v-6"/></svg>KPIs Gerenciais</button>
+      <button data-pg="volume"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h2l1-5h12l1 5h2"/><path d="M5 13v5h14v-5"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>Volume de Frota</button>
+      <button data-pg="meta"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>Metodologia</button>
+    </nav>
+    <div class="sidemeta">
+      <div class="lbl">Empresas</div>
+      <p class="cos">Stellantis · Localiza · Movida · Unidas · LM</p>
+      <div class="foot">
+        <div><b>Fonte:</b> ITR/Release e fontes internas</div>
+        <div><b>Atualizado em</b> 15/06/2026 16:53 (Brasília)</div>
+        <div><b>Owner:</b> Pedro Cerqueira</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="row">
+        <div class="pagetitle"><h2 id="ptitle">Overview Executivo</h2><span id="psub">Visão consolidada e comparações entre pares</span></div>
+        <div class="fgroup"><span class="flbl">Ano</span>
+          <div class="seg" id="yearSeg"><button data-y="2024">2024</button><button data-y="2025" class="on">2025</button></div>
+        </div>
+        <div class="fgroup"><span class="flbl">Recorte</span>
+          <div class="seg" id="segSeg"><button data-s="consolidado" class="on">Consolidado</button><button data-s="gtf">Gestão de Frota</button></div>
+        </div>
+        <div class="fgroup"><span class="flbl">Empresas</span><div class="chips" id="chips"></div></div>
+      </div>
+    </div>
+    <div class="canvas" id="canvas"></div>
+  </div>
+</div>
+<script>
+/* ===== DATA ===== */
+const DATA={"LM": {"pl": {"1T24": {"receita": 924.04, "custos": -522.57, "lucro_bruto": 401.47, "ebitda": 379.98, "deprec": -111.24, "ebit": 268.74, "res_fin": -175.48, "lucro_liq": 63.72}, "2T24": {"receita": 1066.2, "custos": -604.78, "lucro_bruto": 461.42, "ebitda": 426.88, "deprec": -123.84, "ebit": 303.05, "res_fin": -211.64, "lucro_liq": 61.06}, "3T24": {"receita": 1086.14, "custos": -608.19, "lucro_bruto": 477.95, "ebitda": 450.96, "deprec": -146.56, "ebit": 304.4, "res_fin": -261.54, "lucro_liq": 27.18}, "4T24": {"receita": 1073.24, "custos": -513.32, "lucro_bruto": 559.92, "ebitda": 531.65, "deprec": -176.22, "ebit": 355.43, "res_fin": -282.48, "lucro_liq": 48.23}, "2024": {"receita": 4149.63, "custos": -2248.87, "lucro_bruto": 1900.76, "ebitda": 1789.46, "deprec": -557.86, "ebit": 1231.61, "res_fin": -931.15, "lucro_liq": 200.18, "gna": -142.41}, "1T25": {"receita": 1048.93, "custos": -430.4, "lucro_bruto": 618.53, "ebitda": 592.81, "deprec": -223.92, "ebit": 368.89, "res_fin": -324.07, "lucro_liq": 27.22}, "2T25": {"receita": 1220.26, "custos": -575.62, "lucro_bruto": 644.64, "ebitda": 616.92, "deprec": -206.51, "ebit": 410.41, "res_fin": -392.64, "lucro_liq": 6.09}, "3T25": {"receita": 1446.04, "custos": -738.33, "lucro_bruto": 707.72, "ebitda": 669.06, "deprec": -206.96, "ebit": 462.1, "res_fin": -441.83, "lucro_liq": 9.09}, "4T25": {"receita": 1551.07, "custos": -823.97, "lucro_bruto": 727.1, "ebitda": 695.12, "deprec": -235.54, "ebit": 459.59, "res_fin": -449.53, "lucro_liq": 2.78}, "2025": {"receita": 5266.31, "custos": -2568.33, "lucro_bruto": 2697.98, "ebitda": 2573.92, "deprec": -872.93, "ebit": 1700.99, "res_fin": -1608.08, "lucro_liq": 45.19, "gna": -173.49}, "1T26": {"receita": 1522.5, "custos": -740.28, "lucro_bruto": 782.22, "ebitda": 729.89, "deprec": -260.28, "ebit": 469.61, "res_fin": -459.17, "lucro_liq": 8.36}}, "gtf": {"1T24": {"receita": 882.11, "ebitda": 366.38, "ebit": 259.46}, "2T24": {"receita": 1025.99, "ebitda": 412.59, "ebit": 293.02}, "3T24": {"receita": 1044.97, "ebitda": 434.7, "ebit": 292.89}, "4T24": {"receita": 1034.19, "ebitda": 513.96, "ebit": 346.76}, "2024": {"receita": 3987.26, "ebitda": 1727.63, "ebit": 1192.13}, "1T25": {"receita": 1021.5, "ebitda": 580.75, "ebit": 371.06}, "2T25": {"receita": 1180.88, "ebitda": 611.1, "ebit": 416.35}, "3T25": {"receita": 1395.94, "ebitda": 659.96, "ebit": 464.63}, "4T25": {"receita": 1510.91, "ebitda": 687.02, "ebit": 462.33}, "2025": {"receita": 5109.24, "ebitda": 2538.84, "ebit": 1714.37}, "1T26": {"receita": 1477.18, "ebitda": 723.8, "ebit": 471.46}}, "bs": {"2024": {"ativo_total": 16906.78, "imobilizado": 11153.43, "pl": 2445.61, "divida_bruta": 10762.39, "divida_liq": 8664.54, "montadora": 1391.91}, "2025": {"ativo_total": 19231.44, "imobilizado": 14013.99, "pl": 2562.36, "divida_bruta": 12828.97, "divida_liq": 11741.29, "montadora": 1954.06}, "1T26": {"ativo_total": 19301.56, "imobilizado": 14092.98, "pl": 2529.55, "divida_bruta": 13436.4, "divida_liq": 12557.41}}}, "Localiza": {"pl": {"1T24": {"receita": 8686.4, "custos": -5128.6, "lucro_bruto": 3557.8, "ebitda": 2920.4, "deprec": -1069.4, "ebit": 1851.0, "res_fin": -984.6, "lucro_liq": 733.5}, "2T24": {"receita": 9049.1, "custos": -5972.3, "lucro_bruto": 3076.8, "ebitda": 2349.4, "deprec": -2461.4, "ebit": -112.0, "res_fin": -942.8, "lucro_liq": -569.6}, "3T24": {"receita": 9683.4, "custos": -5669.4, "lucro_bruto": 4014.0, "ebitda": 3319.6, "deprec": -1286.7, "ebit": 2032.9, "res_fin": -1044.8, "lucro_liq": 812.1}, "4T24": {"receita": 9852.7, "custos": -5777.0, "lucro_bruto": 4075.7, "ebitda": 3325.3, "deprec": -1292.0, "ebit": 2033.3, "res_fin": -966.5, "lucro_liq": 837.3}, "2024": {"receita": 37271.6, "custos": -22547.3, "lucro_bruto": 14724.3, "ebitda": 11914.7, "deprec": -6109.5, "ebit": 5805.2, "res_fin": -3938.7, "lucro_liq": 1813.3, "gna": -2809.6}, "1T25": {"receita": 10139.2, "custos": -6042.4, "lucro_bruto": 4096.8, "ebitda": 3326.6, "deprec": -1262.6, "ebit": 2064.0, "res_fin": -1069.7, "lucro_liq": 842.4}, "2T25": {"receita": 9900.1, "custos": -5828.5, "lucro_bruto": 4071.6, "ebitda": 3292.5, "deprec": -1272.1, "ebit": 2020.4, "res_fin": -1125.8, "lucro_liq": -168.6}, "3T25": {"receita": 10732.1, "custos": -6558.3, "lucro_bruto": 4173.8, "ebitda": 3407.1, "deprec": -2074.7, "ebit": 1332.4, "res_fin": -1220.0, "lucro_liq": 258.1}, "4T25": {"receita": 11010.2, "custos": -6430.0, "lucro_bruto": 4580.2, "ebitda": 3727.2, "deprec": -1332.4, "ebit": 2394.8, "res_fin": -1198.3, "lucro_liq": 938.5}, "2025": {"receita": 41781.6, "custos": -24859.2, "lucro_bruto": 16922.4, "ebitda": 13753.4, "deprec": -5941.85, "ebit": 7811.55, "res_fin": -4613.8, "lucro_liq": 1870.35, "gna": -3169.0}, "1T26": {"receita": 12284.3, "custos": -7604.8, "lucro_bruto": 4679.5, "ebitda": 4115.7, "deprec": -1382.8, "ebit": 2732.9, "res_fin": -1138.6, "lucro_liq": 1221.9}}, "gtf": {"1T24": {"receita": 1975.6, "ebitda": 1367.7, "ebit": 1348.3}, "2T24": {"receita": 2040.7, "ebitda": 1186.7, "ebit": 1167.5}, "3T24": {"receita": 2144.8, "ebitda": 1498.7, "ebit": 1474.1}, "4T24": {"receita": 2192.4, "ebitda": 1529.7, "ebit": 1507.2}, "2024": {"receita": 8353.5, "ebitda": 5582.8, "ebit": 5497.1}, "1T25": {"receita": 2238.6, "ebitda": 1566.9, "ebit": 1545.1}, "2T25": {"receita": 2248.1, "ebitda": 1595.8, "ebit": 1573.5}, "3T25": {"receita": 2273.0, "ebitda": 1661.2, "ebit": 1637.5}, "4T25": {"receita": 2308.6, "ebitda": 1758.4, "ebit": 1736.9}, "2025": {"receita": 9068.3, "ebitda": 6582.3, "ebit": 6493.0}, "1T26": {"receita": 2323.1, "ebitda": 2045.2, "ebit": 2023.3}}, "bs": {"2024": {"ativo_total": 87243.6, "imobilizado": 53842.4, "pl": 26342.7, "divida_bruta": 44766.5, "divida_liq": 33341.0, "montadora": 10026.4}, "2025": {"ativo_total": 85566.6, "imobilizado": 53731.8, "pl": 25539.0, "divida_bruta": 43595.4, "divida_liq": 33002.5, "montadora": 9342.6}, "1T26": {"ativo_total": 85467.6, "imobilizado": 53195.5, "pl": 26309.6, "divida_bruta": 41957.9, "divida_liq": 32293.1}}}, "Movida": {"pl": {"1T24": {"receita": 3021.65, "custos": -2089.57, "lucro_bruto": 932.08, "ebitda": 1059.5, "deprec": -447.81, "ebit": 611.64, "res_fin": -518.93, "lucro_liq": 61.69}, "2T24": {"receita": 3435.6, "custos": -2465.59, "lucro_bruto": 970.01, "ebitda": 1149.36, "deprec": -522.06, "ebit": 654.23, "res_fin": -547.62, "lucro_liq": 80.15}, "3T24": {"receita": 3775.86, "custos": -2718.64, "lucro_bruto": 1057.23, "ebitda": 1247.48, "deprec": -551.28, "ebit": 700.89, "res_fin": -582.9, "lucro_liq": 90.59}, "4T24": {"receita": 3248.16, "custos": -2191.61, "lucro_bruto": 1056.55, "ebitda": 1244.28, "deprec": -559.35, "ebit": 684.93, "res_fin": -593.46, "lucro_liq": 72.66}, "2024": {"receita": 13481.27, "custos": -9465.41, "lucro_bruto": 4015.86, "ebitda": 4700.61, "deprec": -2080.5, "ebit": 2620.1, "res_fin": -2310.55, "lucro_liq": 231.51, "gna": -1395.79}, "1T25": {"receita": 3568.23, "custos": -2422.66, "lucro_bruto": 1145.57, "ebitda": 1338.33, "deprec": -572.37, "ebit": 765.96, "res_fin": -655.21, "lucro_liq": 78.47}, "2T25": {"receita": 3679.01, "custos": -2524.22, "lucro_bruto": 1154.78, "ebitda": 1379.12, "deprec": -593.73, "ebit": 785.39, "res_fin": -694.08, "lucro_liq": 67.59}, "3T25": {"receita": 3765.84, "custos": -2547.69, "lucro_bruto": 1218.15, "ebitda": 1478.66, "deprec": -624.56, "ebit": 854.09, "res_fin": -795.32, "lucro_liq": 69.95}, "4T25": {"receita": 3658.98, "custos": -2415.24, "lucro_bruto": 1243.74, "ebitda": 1490.05, "deprec": -639.36, "ebit": 850.69, "res_fin": -763.92, "lucro_liq": 102.34}, "2025": {"receita": 14672.06, "custos": -9909.82, "lucro_bruto": 4762.24, "ebitda": 5686.16, "deprec": -2430.03, "ebit": 3256.13, "res_fin": -2908.53, "lucro_liq": 318.36, "gna": -1506.11}, "1T26": {"receita": 3780.64, "custos": -2443.54, "lucro_bruto": 1337.1, "ebitda": 1568.66, "deprec": -650.59, "ebit": 918.08, "res_fin": -753.78, "lucro_liq": 124.51}}, "gtf": {"1T24": {"receita": 720.39, "ebitda": 535.29, "ebit": 311.74}, "2T24": {"receita": 816.01, "ebitda": 619.95, "ebit": 348.74}, "3T24": {"receita": 889.43, "ebitda": 675.76, "ebit": 362.77}, "4T24": {"receita": 943.35, "ebitda": 683.94, "ebit": 360.12}, "2024": {"receita": 3369.18, "ebitda": 2514.94, "ebit": 1383.37}, "1T25": {"receita": 993.18, "ebitda": 756.32, "ebit": 426.66}, "2T25": {"receita": 995.88, "ebitda": 757.42, "ebit": 409.57}, "3T25": {"receita": 1033.43, "ebitda": 791.0, "ebit": 428.85}, "4T25": {"receita": 1083.61, "ebitda": 811.77, "ebit": 445.13}, "2025": {"receita": 4106.09, "ebitda": 3116.51, "ebit": 1710.21}, "1T26": {"receita": 1101.61, "ebitda": 833.53, "ebit": 462.2}}, "bs": {"2024": {"ativo_total": 30573.86, "imobilizado": 21912.95, "pl": 2492.49, "divida_bruta": 19842.44, "divida_liq": 15551.08, "montadora": 5318.16}, "2025": {"ativo_total": 34925.26, "imobilizado": 24160.77, "pl": 2967.8, "divida_bruta": 21150.59, "divida_liq": 17029.01, "montadora": 5854.75}, "1T26": {"ativo_total": 35936.37, "imobilizado": 23242.79, "pl": 3056.66, "divida_bruta": 22919.19, "divida_liq": 17438.31}}}, "Unidas": {"pl": {"1T24": {"receita": 1467.91, "custos": -791.61, "lucro_bruto": 679.59, "ebitda": 532.0, "deprec": -250.22, "ebit": 281.78, "res_fin": -262.15, "lucro_liq": 12.23}, "2T24": {"receita": 1627.99, "custos": -894.73, "lucro_bruto": 737.53, "ebitda": 598.36, "deprec": -275.52, "ebit": 322.85, "res_fin": -262.74, "lucro_liq": 37.92}, "3T24": {"receita": 1762.76, "custos": -992.96, "lucro_bruto": 773.82, "ebitda": 623.08, "deprec": -298.74, "ebit": 324.34, "res_fin": -287.02, "lucro_liq": 23.49}, "4T24": {"receita": 1660.46, "custos": -884.22, "lucro_bruto": 779.99, "ebitda": 628.4, "deprec": -328.4, "ebit": 300.0, "res_fin": -304.89, "lucro_liq": 11.5}, "2024": {"receita": 6519.12, "custos": -3563.52, "lucro_bruto": 2970.93, "ebitda": 2381.84, "deprec": -1152.88, "ebit": 1228.96, "res_fin": -1116.79, "lucro_liq": 85.14, "gna": -589.09}, "1T25": {"receita": 1625.79, "custos": -869.04, "lucro_bruto": 760.27, "ebitda": 598.84, "deprec": -323.88, "ebit": 274.96, "res_fin": -331.71, "lucro_liq": -37.55}, "2T25": {"receita": 1706.16, "custos": -868.87, "lucro_bruto": 841.0, "ebitda": 684.17, "deprec": -306.79, "ebit": 377.38, "res_fin": -349.83, "lucro_liq": 15.38}, "3T25": {"receita": 1961.98, "custos": -1086.72, "lucro_bruto": 879.3, "ebitda": 708.49, "deprec": -303.49, "ebit": 405.0, "res_fin": -377.79, "lucro_liq": 17.58}, "4T25": {"receita": 2048.93, "custos": -1200.44, "lucro_bruto": 852.53, "ebitda": 676.71, "deprec": -293.99, "ebit": 382.72, "res_fin": -364.06, "lucro_liq": 14.88}, "2025": {"receita": 7342.86, "custos": -4025.08, "lucro_bruto": 3333.1, "ebitda": 2668.2, "deprec": -1228.15, "ebit": 1440.05, "res_fin": -1423.4, "lucro_liq": 10.3, "gna": -664.9}, "1T26": {"receita": 1878.5, "custos": -1042.07, "lucro_bruto": 839.47, "ebitda": 656.27, "deprec": -302.22, "ebit": 354.05, "res_fin": -362.88, "lucro_liq": -7.66}}, "gtf": {"1T24": {"receita": 204.57, "ebitda": 155.44, "ebit": 99.1}, "2T24": {"receita": 227.08, "ebitda": 179.03, "ebit": 95.79}, "3T24": {"receita": 251.8, "ebitda": 202.9, "ebit": 121.12}, "4T24": {"receita": 276.07, "ebitda": 228.31, "ebit": 138.93}, "2024": {"receita": 959.53, "ebitda": 765.67, "ebit": 454.94}, "1T25": {"receita": 290.24, "ebitda": 229.21, "ebit": 131.94}, "2T25": {"receita": 300.2, "ebitda": 248.08, "ebit": 156.29}, "3T25": {"receita": 297.11, "ebitda": 231.49, "ebit": 140.51}, "4T25": {"receita": 294.26, "ebitda": 240.13, "ebit": 152.06}, "2025": {"receita": 1181.81, "ebitda": 948.91, "ebit": 580.81}, "1T26": {"receita": 289.47, "ebitda": 219.34, "ebit": 136.17}}, "bs": {"2024": {"ativo_total": 17087.9, "imobilizado": 11069.19, "pl": 2377.7, "divida_bruta": 11666.91, "divida_liq": 8325.12, "montadora": 1565.54}, "2025": {"ativo_total": 17312.01, "imobilizado": 10702.61, "pl": 2383.88, "divida_bruta": 12331.72, "divida_liq": 8644.23, "montadora": 1315.97}, "1T26": {"ativo_total": 17256.17, "imobilizado": 10576.73, "pl": 2362.92, "divida_bruta": 12472.82, "divida_liq": 8766.61}}}, "Stellantis": {"pl": {"2024": {"receita": 209.57, "custos": -66.87, "lucro_bruto": 142.7, "ebitda": 116.4, "deprec": -70.99, "ebit": 45.4, "res_fin": -41.51, "lucro_liq": 2.57, "gna": -26.3}, "2025": {"receita": 369.36, "custos": -112.36, "lucro_bruto": 257.0, "ebitda": 220.1, "deprec": -102.85, "ebit": 117.25, "res_fin": -80.17, "lucro_liq": 24.47, "gna": -36.9}}, "gtf": {"2024": {"receita": 209.57, "ebitda": 116.4, "ebit": 45.4}, "2025": {"receita": 369.36, "ebitda": 220.1, "ebit": 117.25}}, "bs": {"2024": {"ativo_total": 1253.96, "imobilizado": 1086.53, "pl": 85.11, "divida_bruta": 666.82, "divida_liq": 607.17, "montadora": 296.13}, "2025": {"ativo_total": 2407.46, "imobilizado": 2197.66, "pl": 513.85, "divida_bruta": 778.89, "divida_liq": 734.46, "montadora": 612.32}}}};
+const VOL={"Localiza": {"total": {"2024": 669362, "2025": 658496}, "gtf": {"2024": 312751, "2025": 303684}}, "Movida": {"total": {"2024": 268485, "2025": 274841}, "gtf": {"2024": 146543, "2025": 144207}}, "Unidas": {"total": {"2024": 120766, "2025": 115154}, "gtf": {"2024": 49366, "2025": 47050}}, "LM": {"total": {"2024": 103467, "2025": 124823}, "gtf": {"2024": 98406, "2025": 119656}}, "Stellantis": {"total": {"2024": 10244, "2025": 21141}, "gtf": {"2024": 10244, "2025": 21141}}};
+const ORDER=['Stellantis','Localiza','Movida','Unidas','LM'];
+const COL={Localiza:'#046C2F',Movida:'#FF4F01',Unidas:'#007ED2',LM:'#D9D9D9',Stellantis:'#243782'};
+// readable text/line variant (LM puro #D9D9D9 some no branco)
+const INK={Localiza:'#046C2F',Movida:'#FF4F01',Unidas:'#007ED2',LM:'#9a9a9a',Stellantis:'#243782'};
+// contorno mais escuro p/ dar definição (essencial p/ LM cinza-claro)
+const BORD={Localiza:'#034f22',Movida:'#cc3f01',Unidas:'#0066a8',LM:'#b0b0b0',Stellantis:'#1a2a5e'};
+// Logos oficiais: cole aqui a URL ou data-URI do arquivo de cada marca.
+// Se preenchido, a logomarca substitui automaticamente o wordmark em tiles e cabeçalhos.
+const LOGOS={Localiza:'',Movida:'',Unidas:'',LM:'',Stellantis:''};
+function logoBadge(co,px){px=px||13;
+  if(LOGOS[co])return `<img class="logo" src="${LOGOS[co]}" alt="${co}" style="height:${px+6}px">`;
+  return `<span class="wm" style="--wc:${INK[co]};font-size:${px}px">${co}</span>`;
+}
+const META={
+ Localiza:{tag:'RAC + GTF + Seminovos',desc:'Líder de mercado, capital mais robusto'},
+ Movida:{tag:'RAC + GTF + Seminovos',desc:'Grupo Simpar, equity enxuto'},
+ Unidas:{tag:'GTF Leves + Pesados + RAC',desc:'Foco em terceirização de frotas'},
+ LM:{tag:'~96% Gestão de Frotas',desc:'Menor porte, mais alavancada'},
+ Stellantis:{tag:'Locadora de frota (captive)',desc:'Braço da Stellantis, em forte expansão'}
+};
+const TAX=0.34;
+const state={year:'2025',seg:'consolidado',page:'overview',on:new Set(ORDER),dreCo:'Movida'};
+
+/* ===== helpers ===== */
+const fmtMn=v=>{if(v==null)return '–';const a=Math.abs(v);if(a>=1000)return (v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' Bi';return v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' Mi';};
+const fmtR=v=>v==null?'–':'R$ '+fmtMn(v);
+const fmtK=v=>v==null?'–':(Math.abs(v)>=1000?(v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'k':v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}));
+const pct=(v,d=1)=>v==null?'–':(v*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';
+const mult=(v,d=2)=>v==null?'–':v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'x';
+const prevYear=y=>y==='2025'?'2024':null;
+
+function pl(co,y){return DATA[co].pl[y];}
+function gtf(co,y){return DATA[co].gtf[y];}
+function bs(co,y){return DATA[co].bs[y];}
+// active P&L block respecting segment
+function blk(co,y){return state.seg==='gtf'?gtf(co,y):pl(co,y);}
+// frota conforme recorte (total no consolidado, GTF no recorte GTF)
+function fleetVol(co,y){const v=(typeof VOL!=='undefined')?VOL[co]:null;if(!v)return null;return state.seg==='gtf'?(v.gtf?v.gtf[y]:null):(v.total?v.total[y]:null);}
+function fleetTotal(co,y){const v=(typeof VOL!=='undefined')?VOL[co]:null;return v&&v.total?v.total[y]:null;}
+function fleetGtf(co,y){const v=(typeof VOL!=='undefined')?VOL[co]:null;return v&&v.gtf?v.gtf[y]:null;}
+function fleetGtf(co,y){const v=(typeof VOL!=='undefined')?VOL[co]:null;return v&&v.gtf?v.gtf[y]:null;}
+function fleetTot(co,y){const v=(typeof VOL!=='undefined')?VOL[co]:null;return v&&v.total?v.total[y]:null;}
+// valor anual (R$ mn) -> R$ por veículo (reais cheios)
+function perUnit(valMn,fleet){return (fleet&&valMn!=null)?valMn*1e6/fleet:null;}
+const fmtPU=v=>v==null?'–':Math.round(v).toLocaleString('pt-BR');
+
+function kpis(co,y){
+ const p=pl(co,y),b=bs(co,y);
+ const o={};
+ o.receita=p.receita;o.ebitda=p.ebitda;o.ll=p.lucro_liq;o.resfin=p.res_fin;o.ebit=p.ebit;
+ o.mgEbitda=p.ebitda/p.receita; o.mgLiq=p.lucro_liq/p.receita; o.mgBruta=p.lucro_bruto/p.receita;
+ o.dlEbitda=b.divida_liq/p.ebitda;
+ o.dlImob=b.divida_liq/b.imobilizado;
+ o.dlPl=b.divida_liq/b.pl;
+ o.plAtivo=b.pl/b.ativo_total;
+ o.resfinDl=p.res_fin/b.divida_liq;
+ // ROE = Lucro Líquido / PL médio (média de 12/2024 e 12/2025)
+ const plAvg=(bs(co,'2024').pl + bs(co,'2025').pl)/2;
+ o.plMedio=plAvg;
+ o.roe=p.lucro_liq/plAvg;
+ o.roic=(p.ebit*(1-TAX))/(b.divida_liq+b.pl);
+ o.ebitMg=p.ebit/p.receita;                       // margem EBIT
+ o.montImob=(b.montadora!=null)?b.montadora/b.imobilizado:null; // fornecedores/montadora ÷ imobilizado
+ o.spread=o.roic-Math.abs(o.resfinDl); // value spread vs funding cost
+ o.divLiq=b.divida_liq;o.ativo=b.ativo_total;o.pleq=b.pl;o.imob=b.imobilizado;
+ // segment metrics
+ const g=gtf(co,y);o.gtfRec=g.receita;o.gtfEbitda=g.ebitda;o.gtfMg=g.ebitda/g.receita;
+ o.gtfShare=g.receita/p.receita;
+ return o;
+}
+function yoy(co,sel){ // growth of selected pl field 2024->2025
+ const a=pl(co,'2024')[sel],b=pl(co,'2025')[sel]; return (b-a)/Math.abs(a);
+}
+const active=()=>ORDER.filter(c=>state.on.has(c));
+
+/* ===== chart registry ===== */
+const charts={};
+function chart(id,cfg){ try{ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(el)charts[id]=new Chart(el,cfg); }catch(e){ console.error('chart '+id+' falhou:',e); } }
+Chart.defaults.font.family="'Encode Sans Condensed','Encode Sans',sans-serif";
+Chart.defaults.font.size=11.5; Chart.defaults.color='#6b7390';
+Chart.defaults.plugins.tooltip.titleFont={family:"'Encode Sans'",weight:'700'};
+Chart.defaults.plugins.tooltip.backgroundColor='#1a1f36';Chart.defaults.plugins.tooltip.padding=10;Chart.defaults.plugins.tooltip.cornerRadius=8;
+// sem linhas de grade em nenhum gráfico
+Chart.defaults.scale.grid.display=false;
+Chart.defaults.scale.border.display=false;
+// espaço para os rótulos nas pontas das barras
+Chart.defaults.layout.padding={top:20,right:40,bottom:2,left:4};
+// rótulo do valor na ponta final de cada barra
+const barLabelsPlugin={
+ id:'barLabels',
+ afterDatasetsDraw(chart){
+  try{
+   const cop=chart.config&&chart.config.options&&chart.config.options.plugins;
+   const o=cop&&cop.barLabels;
+   if(o&&o.display===false)return;
+   const horiz=chart.options.indexAxis==='y';
+   const vAxis=horiz?'x':'y';
+   const sc=chart.options.scales&&chart.options.scales[vAxis];
+   const cb=sc&&sc.ticks&&sc.ticks.callback;
+   const fmt=(o&&typeof o.fmt==='function')?o.fmt:((typeof cb==='function')?(v=>cb(v,0,[])):(v=>Math.round(v).toLocaleString('pt-BR')));
+   const customColor=o&&o.color;
+   const stacked=!!(sc&&sc.stacked);
+   const ctx=chart.ctx;ctx.save();ctx.font="700 10px 'Encode Sans Condensed','Encode Sans',sans-serif";
+   chart.data.datasets.forEach((ds,di)=>{
+     const meta=chart.getDatasetMeta(di);
+     if(meta.type!=='bar'||meta.hidden)return;
+     meta.data.forEach((el,i)=>{
+       const raw=ds.data[i];if(raw==null)return;
+       const val=Array.isArray(raw)?(raw[1]-raw[0]):raw;
+       if(val==null||(stacked&&Math.abs(val)<1e-9))return;
+       const txt=fmt(val);
+       if(stacked){
+         ctx.fillStyle=customColor||'#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+         if(horiz)ctx.fillText(txt,(el.x+el.base)/2,el.y);else ctx.fillText(txt,el.x,(el.y+el.base)/2);
+       }else{
+         ctx.fillStyle=customColor||'#1a1f36';
+         if(horiz){ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(txt,el.x+6,el.y);}
+         else{ctx.textAlign='center';const neg=el.y>el.base;ctx.textBaseline=neg?'top':'bottom';ctx.fillText(txt,el.x,neg?el.y+4:el.y-4);}
+       }
+     });
+   });
+   ctx.restore();
+  }catch(e){ /* nunca deixar o rótulo quebrar o desenho dos gráficos */ }
+ }
+};
+Chart.register(barLabelsPlugin);
+
+/* =================== RENDER =================== */
+const C=()=>document.getElementById('canvas');
+function render(){
+ const a=active();
+ buildChips();
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.pg===state.page));
+ const titles={overview:['Overview Executivo','Visão consolidada e comparações entre pares'],dre:['DRE · Análise Linha a Linha','Demonstração de resultados comparável'],kpi:['KPIs Financeiros','Estrutura de capital, alavancagem e retorno'],mgmt:['KPIs Gerenciais','Decomposição da margem: receita, custos e despesas'],volume:['Volume de Frota','Tamanho da frota e produtividade por veículo'],meta:['Metodologia & Dados','Padronização, premissas e confiabilidade']};
+ document.getElementById('ptitle').textContent=titles[state.page][0];
+ document.getElementById('psub').textContent=titles[state.page][1];
+ // segment filter only affects overview/dre; keep enabled
+ if(state.page==='overview')renderOverview(a);
+ else if(state.page==='dre')renderDRE(a);
+ else if(state.page==='kpi')renderKPI(a);
+ else if(state.page==='mgmt')renderMgmt(a);
+ else if(state.page==='volume')renderVolume(a);
+ else renderMeta();
+}
+
+/* ---------- OVERVIEW ---------- */
+function renderOverview(a){
+ const y=state.year, segLbl=state.seg==='gtf'?'Gestão de Frota':'Consolidado';
+ // KPI tiles: receita / ebitda / margem ebitda / lucro liquido (consolidado) or gtf
+ let tiles='';
+ a.forEach(co=>{
+  const k=kpis(co,y); const useGtf=state.seg==='gtf';
+  const rec=useGtf?k.gtfRec:k.receita, eb=useGtf?k.gtfEbitda:k.ebitda, mg=useGtf?k.gtfMg:k.mgEbitda;
+  const gr=prevYear(y)?( (useGtf?gtf(co,y).receita:pl(co,y).receita) - (useGtf?gtf(co,prevYear(y)).receita:pl(co,prevYear(y)).receita) )/Math.abs(useGtf?gtf(co,prevYear(y)).receita:pl(co,prevYear(y)).receita):null;
+  tiles+=`<div class="kpi"><div class="edge" style="background:${COL[co]}"></div>
+   <div class="co"><span class="dot" style="background:${COL[co]};border:1px solid ${BORD[co]}"></span>${logoBadge(co,13)}</div>
+   <div class="big num">${fmtR(rec)}</div><div class="lbl">Receita líquida · ${segLbl}</div>
+   <div class="delta ${gr>=0?'up':'down'}">${gr==null?'':(gr>=0?'▲':'▼')+' '+pct(Math.abs(gr))+' a/a'}</div>
+   <div class="lbl" style="margin-top:8px">EBITDA <b class="num">${fmtR(eb)}</b> · margem <b class="num">${pct(mg)}</b></div>
+  </div>`;
+ });
+ C().innerHTML=`
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(186px,1fr))">${tiles}</div>
+
+  <div class="sectionhead"><span class="n">01</span><h2>Escala &amp; Rentabilidade</h2><p>Receita e EBITDA por empresa no recorte ${segLbl} · ${y}</p></div>
+  <div class="grid g2">
+   <div class="card"><h3><span class="barK"></span>Receita líquida vs EBITDA</h3><div class="sub">R$ milhões · ${y} · ${segLbl}</div><div class="chwrap"><canvas id="ovRev"></canvas></div></div>
+   <div class="card"><h3><span class="barK"></span>Margem EBITDA &amp; Margem líquida</h3><div class="sub">% sobre receita · ${y} · ${state.seg==='gtf'?'GTF (margem líq. apenas consolidada)':'consolidado'}</div><div class="chwrap"><canvas id="ovMg"></canvas></div></div>
+  </div>
+
+  <div class="sectionhead"><span class="n">02</span><h2>Mapa de Posicionamento Risco × Retorno</h2><p>Eixo X: alavancagem (Dívida Líq./EBITDA) · Eixo Y: ROIC · bolha: EBITDA</p></div>
+  <div class="grid g2">
+   <div class="card span2" style="grid-column:span 2"><h3><span class="barK"></span>Onde cada player cria (ou destrói) valor</h3><div class="sub">Quanto mais à esquerda e ao alto, melhor: menor risco financeiro e maior retorno sobre capital · ${y} · consolidado</div><div class="chwrap tall"><canvas id="ovScatter"></canvas></div>
+   <div class="callout" style="margin-top:12px">A faixa cinza marca a região onde o <b>ROIC fica abaixo do custo da dívida</b> (≈ Res. Financeiro / Dívida Líq.). Em 2025, com Selic elevada, o setor opera com <b>spread comprimido ou negativo</b> — o retorno do capital investido não cobre integralmente o custo de financiamento da frota.</div>
+   </div>
+  </div>
+
+  <div class="sectionhead"><span class="n">03</span><h2>Leitura Executiva</h2><p>Principais conclusões, oportunidades e riscos</p></div>
+  <div class="grid g2">
+   <div class="card"><h3><span class="barK"></span>Insights-chave</h3><ul class="clean" id="ovInsights"></ul></div>
+   <div class="card"><h3><span class="barK"></span>Perguntas que a Diretoria pode responder</h3><div class="metawrap">
+     <div class="q"><b>Quem tem o balanço mais resiliente</b> para suportar a alta de juros sem comprometer o lucro?</div>
+     <div class="q"><b>Qual concorrente está crescendo receita</b> sem deteriorar margem nem elevar alavancagem?</div>
+     <div class="q"><b>Onde a Stellantis Locadora se encaixaria</b> nesse mapa de risco-retorno ao ser incluída?</div>
+     <div class="q"><b>Quanto da rentabilidade</b> de cada player vem de Gestão de Frota vs. RAC/Seminovos?</div>
+   </div></div>
+  </div>`;
+ // charts
+ const labels=a;
+ chart('ovRev',{type:'bar',data:{labels,datasets:[
+   {label:'Receita',data:a.map(co=>state.seg==='gtf'?gtf(co,y).receita:pl(co,y).receita),backgroundColor:a.map(co=>COL[co]),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:46},
+   {label:'EBITDA',data:a.map(co=>state.seg==='gtf'?gtf(co,y).ebitda:pl(co,y).ebitda),backgroundColor:a.map(co=>COL[co]+'66'),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:46}
+ ]},options:barOpts(v=>fmtR(v))});
+ chart('ovMg',{type:'bar',data:{labels,datasets:[
+   {label:'Margem EBITDA',data:a.map(co=>state.seg==='gtf'?gtf(co,y).ebitda/gtf(co,y).receita:kpis(co,y).mgEbitda),backgroundColor:a.map(co=>COL[co]),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:40},
+   {label:'Margem líquida (consol.)',data:a.map(co=>kpis(co,y).mgLiq),backgroundColor:a.map(co=>COL[co]+'55'),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:40}
+ ]},options:barOpts(v=>pct(v),true)});
+ // scatter
+ const pts=a.map(co=>{const k=kpis(co,y);return{x:k.dlEbitda,y:k.roic,r:Math.max(7,Math.sqrt(k.ebitda)/9),co,fund:Math.abs(k.resfinDl)};});
+ chart('ovScatter',{type:'bubble',data:{datasets:pts.map(p=>({label:p.co,data:[p],backgroundColor:COL[p.co]+'cc',borderColor:BORD[p.co],borderWidth:2}))},
+  options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:14,font:{family:"'Encode Sans'",weight:'600'}}},
+   tooltip:{callbacks:{label:c=>{const p=c.raw;return [p.co,'Dív.Líq/EBITDA: '+mult(p.x),'ROIC: '+pct(p.y),'Custo dívida≈ '+pct(p.fund)];}}}},
+   scales:{x:{title:{display:true,text:'Dívida Líquida / EBITDA  (risco →)',font:{weight:'700'}},grid:{color:'#eef0f7'},min:2,suggestedMax:5.2},
+           y:{title:{display:true,text:'ROIC  (retorno →)',font:{weight:'700'}},grid:{color:'#eef0f7'},ticks:{callback:v=>pct(v,1)},suggestedMin:0.04,suggestedMax:0.13}}}});
+ ovInsights(a,y);
+}
+function ovInsights(a,y){
+ const el=document.getElementById('ovInsights');if(!el)return;
+ const k=Object.fromEntries(ORDER.map(c=>[c,kpis(c,y)]));
+ const lev=ORDER.filter(c=>a.includes(c)).sort((x,z)=>k[x].dlEbitda-k[z].dlEbitda);
+ const roe=ORDER.filter(c=>a.includes(c)).sort((x,z)=>z.roe-x.roe);
+ const items=[];
+ items.push(['g',`<b>${lev[0]}</b> tem a menor alavancagem (${mult(k[lev[0]].dlEbitda)} Dív.Líq/EBITDA) e a estrutura de capital mais sólida (PL/Ativo ${pct(k[lev[0]].plAtivo)}).`]);
+ items.push(['r',`<b>${lev[lev.length-1]}</b> é a mais alavancada (${mult(k[lev[lev.length-1]].dlEbitda)}), com menor folga para o atual patamar de juros.`]);
+ const best=a.map(c=>[c,k[c].mgEbitda]).sort((p,q)=>q[1]-p[1])[0];
+ items.push(['',`Margens EBITDA <b>expandiram em 2025</b> em quase todos os players — o ganho operacional é real; ${best[0]} lidera em margem (${pct(best[1])}).`]);
+ const worstLL=a.map(c=>[c,k[c].mgLiq]).sort((p,q)=>p[1]-q[1])[0];
+ items.push(['r',`A pressão está <b>abaixo do EBITDA</b>: o resultado financeiro consumiu o lucro. ${worstLL[0]} fechou ${y} com margem líquida de apenas ${pct(k[worstLL[0]].mgLiq)}.`]);
+ items.push(['o',`O <b>spread ROIC – custo da dívida é negativo</b> para os mais alavancados — desalavancar e/ou reprecificar contratos é a alavanca de valor mais relevante do setor.`]);
+ el.innerHTML=items.map(([t,h])=>`<li><span class="tag ${t}">${t==='g'?'+':t==='r'?'!':t==='o'?'△':'•'}</span><span>${h}</span></li>`).join('');
+}
+
+function barOpts(fmt,isPct){return{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'rectRounded',padding:14,font:{family:"'Encode Sans'",weight:'600'}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)}}},scales:{x:{grid:{display:false},ticks:{font:{family:"'Encode Sans'",weight:'700',size:12}}},y:{grid:{color:'#eef0f7'},ticks:{callback:v=>isPct?pct(v,1):fmtMn(v)}}}};}
+
+/* ---------- DRE ---------- */
+const QS=['1T24','2T24','3T24','4T24','1T25','2T25','3T25','4T25','1T26'];
+
+function dreRows(co,y){
+  const p=pl(co,y);
+  const despOp=p.ebitda-p.lucro_bruto;          // SG&A líquido de reclassificações até o EBITDA
+  const aoi=p.ebit+p.res_fin;                    // Resultado Ajustado (AOI) = resultado antes do IR
+  const ir=p.lucro_liq-aoi;                      // IR/CSLL & participações
+  return [
+    {k:'receita',   l:'Receita líquida',          v:p.receita,     t:'tot'},
+    {k:'custos',    l:'Custos',                    v:p.custos,      t:'neg'},
+    {k:'lucro_bruto',l:'Lucro bruto',              v:p.lucro_bruto, t:'sub'},
+    {k:'despop',    l:'Desp. oper. / ajustes',     v:despOp,        t:'delta'},
+    {k:'ebitda',    l:'EBITDA',                    v:p.ebitda,      t:'sub'},
+    {k:'deprec',    l:'Depreciação & amortização', v:p.deprec,      t:'neg'},
+    {k:'ebit',      l:'EBIT',                      v:p.ebit,        t:'sub'},
+    {k:'res_fin',   l:'Resultado financeiro',      v:p.res_fin,     t:'neg'},
+    {k:'aoi',       l:'Resultado Ajustado (AOI)',  v:aoi,           t:'sub'},
+    {k:'ir',        l:'IR/CSLL & outros',          v:ir,            t:'delta'},
+    {k:'lucro_liq', l:'Lucro líquido',             v:p.lucro_liq,   t:'tot'}
+  ];
+}
+// recorte GTF: segmento real até o EBIT; abaixo, alocação proporcional pela frota de GTF
+function dreRowsGtf(co,y){
+  const g=gtf(co,y), p=pl(co,y);
+  const tf=fleetTotal(co,y), gf=fleetGtf(co,y);
+  const ratio=(tf&&gf!=null)?gf/tf:1;            // participação da frota de GTF
+  const resFinProp=p.res_fin*ratio;
+  const aoiProp=g.ebit+resFinProp;
+  const irConsol=p.lucro_liq-p.ebit-p.res_fin;
+  const irProp=irConsol*ratio;
+  const netProp=aoiProp+irProp;
+  return [
+    {k:'receita',l:'Receita líquida (GTF)',     v:g.receita,                t:'tot'},
+    {k:'cd',     l:'Custos & despesas',          v:g.ebitda-g.receita,       t:'neg'},
+    {k:'ebitda', l:'EBITDA (GTF)',               v:g.ebitda,                 t:'sub'},
+    {k:'deprec', l:'Depreciação (frota)',        v:g.ebit-g.ebitda,          t:'neg'},
+    {k:'ebit',   l:'EBIT (GTF)',                 v:g.ebit,                   t:'sub'},
+    {k:'res_fin',l:'Resultado financeiro ◳',     v:resFinProp,               t:'neg',  prop:true},
+    {k:'aoi',    l:'Resultado Ajustado (AOI) ◳', v:aoiProp,                  t:'sub',  prop:true},
+    {k:'ir',     l:'IR/CSLL & outros ◳',         v:irProp,                   t:'delta',prop:true},
+    {k:'lucro_liq',l:'Lucro líquido (GTF) ◳',    v:netProp,                  t:'tot',  prop:true}
+  ];
+}
+
+function renderDRE(a){
+  const y=state.year, gtfMode=state.seg==='gtf';
+  if(!a.includes(state.dreCo)) state.dreCo=a[0];
+  const segLbl=gtfMode?'Gestão de Frota':'Consolidado';
+  const rowsFn=gtfMode?dreRowsGtf:dreRows;
+  const refRows=rowsFn(a[0],y).map(r=>r.k);
+  const refMeta=rowsFn(a[0],y);
+
+  // comparable table: cada empresa = 2 colunas (R$ mn + por veículo)
+  const puLbl=gtfMode?'R$/veíc. GTF':'R$/veículo';
+  let head=`<tr><th rowspan="2" style="vertical-align:bottom">R$ milhões · ${y}</th>${a.map(co=>`<th class="sep" colspan="2" style="text-align:center;border-bottom:1px solid var(--line)">${logoBadge(co,12)}</th>`).join('')}</tr>`;
+  head+=`<tr>${a.map(()=>`<th class="sep">Resultado</th><th style="color:var(--navy)">${puLbl}</th>`).join('')}</tr>`;
+  let body='';
+  refMeta.forEach((rm,i)=>{
+    const cls = (rm.t==='tot'?'tot':(rm.t==='sub'?'head':''))+(rm.prop?' prop':'');
+    body+=`<tr class="${cls.trim()}"><td class="metric">${rm.l}</td>`;
+    a.forEach(co=>{
+      const r=rowsFn(co,y)[i];
+      const fleet=fleetVol(co,y);
+      const pu=perUnit(r.v,fleet);
+      body+=`<td class="sep"><span class="num">${fmtMn(r.v)}</span></td><td style="background:${rm.prop?'#ffe9d4':'#f7f8fc'}"><span class="num" style="color:var(--navy)">${fmtPU(pu)}</span></td>`;
+    });
+    body+=`</tr>`;
+  });
+  // linha de frota (base do cálculo)
+  body+=`<tr class="tot"><td class="metric">Frota (fim do período) ${gtfMode?'· GTF':'· total'}</td>${a.map(co=>{const f=fleetVol(co,y);return `<td class="sep" colspan="2" style="text-align:center"><span class="num">${f==null?'–':f.toLocaleString('pt-BR')}</span> veíc.</td>`;}).join('')}</tr>`;
+
+  C().innerHTML=`
+   <div class="grid g2" style="grid-template-columns:1.05fr .95fr">
+     <div class="card"><h3><span class="barK"></span>DRE comparável — ${segLbl}</h3>
+       <div class="sub">Coluna <b style="color:var(--navy)">${puLbl}</b> = valor anual ÷ frota (${gtfMode?'GTF':'total'}, fim do período), em reais por veículo · resultados em R$ (Mi/Bi)</div>
+       <div class="scroll"><table class="tbl">${head}${body}</table></div>
+       ${gtfMode?`<div class="callout prop-note" style="margin-top:12px"><span class="propchip"></span>As linhas marcadas com <b>◳</b> (Resultado financeiro, AOI, IR/CSLL e Lucro líquido) são <b>proporcionais</b>: como esses itens não são reportados por segmento, foram alocados pela <b>participação da frota de GTF no total</b> (frota GTF ÷ frota total). Até o <b>EBIT</b>, os números são do segmento reportado.</div>`:`<div class="callout" style="margin-top:12px">A linha <b>Desp. oper./ajustes</b> concilia o lucro bruto ao EBITDA (SG&amp;A e reclassificações de depreciação). <b>AOI</b> = Resultado Ajustado (EBIT + Resultado Financeiro), o resultado antes do IR. O <b>por veículo</b> usa a frota total de fim de período.</div>`}
+     </div>
+     <div class="card">
+       <div class="dredrop"><h3 style="margin-right:auto"><span class="barK"></span>Ponte de resultado (waterfall)</h3>
+         <span class="flbl" style="font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-right:6px">Empresa</span>
+         <select id="dreCo">${a.map(co=>`<option value="${co}" ${co===state.dreCo?'selected':''}>${co}</option>`).join('')}</select>
+       </div>
+       <div class="sub">Da receita ao lucro líquido · ${state.dreCo} · ${y} · ${segLbl}</div>
+       <div class="chwrap tall"><canvas id="dreFall"></canvas></div>
+     </div>
+   </div>
+
+   <div class="sectionhead"><span class="n">DRE</span><h2>Drivers &amp; trajetória trimestral</h2><p>Onde nasce a diferença de resultado entre os players</p></div>
+   <div class="grid g2">
+     <div class="card"><h3><span class="barK"></span>Receita líquida — evolução trimestral</h3><div class="sub">R$ milhões · ${segLbl} · 1T24 a 1T26</div><div class="chwrap"><canvas id="dreTrendRev"></canvas></div></div>
+     <div class="card"><h3><span class="barK"></span>Margem EBITDA — evolução trimestral</h3><div class="sub">% da receita · ${segLbl} · 1T24 a 1T26</div><div class="chwrap"><canvas id="dreTrendMg"></canvas></div></div>
+   </div>
+
+   <div class="sectionhead"><span class="n">★</span><h2>Leitura dos drivers</h2><p>Volume, preço, custo e eficiência</p></div>
+   <div class="grid g2"><div class="card span2" style="grid-column:span 2"><ul class="clean" id="dreInsights"></ul></div></div>
+  `;
+
+  // waterfall
+  const steps=rowsFn(state.dreCo,y);
+  let run=0; const floats=[],colors=[];
+  const POS='#4EA72E', NEG='#FF0000';
+  steps.forEach(s=>{
+    if(s.t==='tot'||s.t==='sub'){ floats.push([0,s.v]); colors.push(s.v>=0?POS:NEG); run=s.v; }
+    else { const from=run, to=run+s.v; floats.push([from,to]); colors.push(s.v>=0?POS:NEG); run=to; }
+  });
+  // bridge: conectores entre os degraus
+  const bridgeConnectors={id:'bridge',afterDatasetsDraw(ch){try{
+    const m=ch.getDatasetMeta(0),ys=ch.scales.y,c=ch.ctx;if(!m||!ys)return;
+    c.save();c.strokeStyle='#8a93ad';c.lineWidth=1;c.setLineDash([3,3]);
+    for(let i=0;i<m.data.length-1;i++){
+      const e=m.data[i],n=m.data[i+1];const yv=ys.getPixelForValue(floats[i][1]);
+      c.beginPath();c.moveTo(e.x+e.width/2,yv);c.lineTo(n.x-n.width/2,yv);c.stroke();
+    }
+    c.restore();
+  }catch(e){}}};
+  chart('dreFall',{type:'bar',data:{labels:steps.map(s=>s.l),datasets:[{data:floats,backgroundColor:colors,borderColor:colors,borderWidth:1,borderRadius:3,maxBarThickness:38}]},
+    plugins:[bridgeConnectors],
+    options:{maintainAspectRatio:false,indexAxis:'x',plugins:{legend:{display:false},barLabels:{fmt:v=>Math.round(v).toLocaleString('pt-BR')},tooltip:{callbacks:{label:c=>{const v=c.raw;return 'R$ '+fmtMn(v[1]-v[0])+' (acum. '+fmtMn(v[1])+')';}}}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:55,minRotation:40,font:{size:10.5,family:"'Encode Sans Condensed'",weight:'600'}}},y:{grid:{display:false},ticks:{callback:v=>fmtMn(v)}}}}});
+
+  // quarterly trends
+  const qlabels=QS;
+  chart('dreTrendRev',{type:'line',data:{labels:qlabels,datasets:a.map(co=>({label:co,
+      data:QS.map(q=>{const blkq=gtfMode?(DATA[co].gtf[q]):(DATA[co].pl[q]); return blkq?blkq.receita:null;}),
+      borderColor:INK[co],backgroundColor:INK[co],tension:.3,borderWidth:2,pointRadius:2.5,spanGaps:true}))},
+    options:lineOpts(v=>fmtMn(v))});
+  chart('dreTrendMg',{type:'line',data:{labels:qlabels,datasets:a.map(co=>({label:co,
+      data:QS.map(q=>{const b=gtfMode?DATA[co].gtf[q]:DATA[co].pl[q]; return b&&b.receita?b.ebitda/b.receita:null;}),
+      borderColor:INK[co],backgroundColor:INK[co],tension:.3,borderWidth:2,pointRadius:2.5,spanGaps:true}))},
+    options:lineOpts(v=>pct(v,1),true)});
+
+  // bind dropdown
+  const sel=document.getElementById('dreCo');
+  if(sel)sel.onchange=e=>{state.dreCo=e.target.value;render();};
+  dreInsights(a,y,gtfMode);
+}
+
+function lineOpts(fmt,isPct){return{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+  plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',padding:13,font:{family:"'Encode Sans'",weight:'600'}}},
+    tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y==null?'–':fmt(c.parsed.y))}}},
+  scales:{x:{grid:{display:false},ticks:{font:{size:10.5,family:"'Encode Sans Condensed'",weight:'600'}}},y:{grid:{color:'#eef0f7'},ticks:{callback:v=>isPct?pct(v,1):fmtMn(v)}}}};}
+
+function dreInsights(a,y,gtfMode){
+  const el=document.getElementById('dreInsights');if(!el)return;
+  const k=Object.fromEntries(a.map(c=>[c,kpis(c,y)]));
+  const items=[];
+  // revenue growth leader
+  const gr=a.map(c=>[c,yoy(c,'receita')]).sort((p,q)=>q[1]-p[1]);
+  items.push(['g',`<b>Volume/preço:</b> ${gr[0][0]} liderou o crescimento de receita (${pct(gr[0][1])} a/a), sinal de ganho de tarifa e/ou frota; ${gr[gr.length-1][0]} cresceu menos (${pct(gr[gr.length-1][1])}).`]);
+  // margin / efficiency
+  const mg=a.map(c=>[c,k[c].mgEbitda]).sort((p,q)=>q[1]-p[1]);
+  items.push(['',`<b>Eficiência:</b> a margem EBITDA varia de ${pct(mg[mg.length-1][1])} (${mg[mg.length-1][0]}) a ${pct(mg[0][1])} (${mg[0][0]}). Modelos mais puros de GTF tendem a margem operacional maior, pois evitam o giro de baixo spread de RAC/Seminovos.`]);
+  // financial result bite
+  const fin=a.map(c=>[c,k[c].resfin/k[c].ebitda]).sort((p,q)=>p[1]-q[1]);
+  items.push(['r',`<b>Custo de capital:</b> o resultado financeiro consome de ${pct(Math.abs(fin[fin.length-1][1]),0)} a ${pct(Math.abs(fin[0][1]),0)} do EBITDA. Em ${fin[0][0]} a mordida é a maior do grupo — principal motivo da compressão do lucro líquido em 2025.`]);
+  // bottom line
+  const ll=a.map(c=>[c,k[c].mgLiq]).sort((p,q)=>p[1]-q[1]);
+  items.push(['o',`<b>Bottom line:</b> apesar de EBITDA crescente, ${ll[0][0]} fechou ${y} com margem líquida de ${pct(ll[0][1])} — a alavancagem transfere quase todo o ganho operacional para o serviço da dívida.`]);
+  el.innerHTML=items.map(([t,h])=>`<li><span class="tag ${t}">${t==='g'?'+':t==='r'?'!':t==='o'?'△':'•'}</span><span>${h}</span></li>`).join('');
+}
+
+/* ---------- KPIs ---------- */
+// def: {key, label, fmt, dir(+1 higher better / -1 lower better), formula, interp}
+const KDEF=[
+  {key:'dlEbitda', label:'Dívida Líquida / EBITDA', kind:'mult', dir:-1,
+   formula:'Dívida Líquida ÷ EBITDA',
+   interp:'Quantos anos de geração de caixa operacional seriam necessários para quitar a dívida líquida. É o termômetro central de alavancagem do setor; covenants costumam ficar entre 3,0x e 3,5x.'},
+  {key:'dlImob', label:'Dívida Líquida / Imobilizado', kind:'pct', dir:-1,
+   formula:'Dívida Líquida ÷ Imobilizado líquido (frota + bens)',
+   interp:'Quanto da frota está financiada por dívida. Próximo de 100% indica que o ativo operacional está quase todo alavancado, deixando pouca folga patrimonial.'},
+  {key:'dlPl', label:'Dívida Líquida / Patrimônio Líquido', kind:'mult', dir:-1,
+   formula:'Dívida Líquida ÷ Patrimônio Líquido',
+   interp:'Grau de alavancagem sobre o capital próprio. Valores altos amplificam o ROE quando o spread é positivo, mas multiplicam o risco quando o custo da dívida supera o retorno.'},
+  {key:'plAtivo', label:'Patrimônio Líquido / Ativo Total', kind:'pct', dir:1,
+   formula:'Patrimônio Líquido ÷ Ativo Total',
+   interp:'Espessura do capital próprio (equity ratio). Quanto maior, maior a capacidade de absorver choques sem recorrer a novo capital ou venda de ativos.'},
+  {key:'resfinDl', label:'Resultado Financeiro / Dívida Líquida', kind:'pct', dir:1,
+   formula:'Resultado Financeiro ÷ Dívida Líquida',
+   interp:'Proxy do custo médio da dívida. Em 2025, com Selic elevada, situa-se entre 14% e 17% — patamar que precisa ser comparado diretamente ao ROIC para avaliar criação de valor.'},
+  {key:'roe', label:'ROE — Retorno sobre PL', kind:'pct', dir:1,
+   formula:'Lucro Líquido ÷ Patrimônio Líquido médio (média de 12/2024 e 12/2025)',
+   interp:'Retorno gerado ao acionista sobre o capital próprio médio do período. Em estruturas muito alavancadas, um ROE alto pode mascarar risco elevado; deve ser lido junto de PL/Ativo e DL/PL.'},
+  {key:'roic', label:'ROIC — Retorno sobre Capital Investido', kind:'pct', dir:1,
+   formula:'EBIT × (1 − 34%) ÷ (Dívida Líquida + Patrimônio Líquido)',
+   interp:'Retorno sobre todo o capital investido, independente da estrutura de financiamento. É a régua para comparar eficiência de alocação entre empresas com alavancagens diferentes.'},
+  {key:'ebitMg', label:'EBIT / Receita Líquida', kind:'pct', dir:1,
+   formula:'EBIT ÷ Receita Líquida',
+   interp:'Margem operacional após depreciação da frota — mede a rentabilidade do negócio antes do resultado financeiro e dos impostos. Captura melhor que o EBITDA o peso real da depreciação, central no setor de locação.'},
+  {key:'montImob', label:'Contas a pagar Montadora / Imobilizado', kind:'pct', dir:0,
+   formula:'Contas a pagar a fornecedores/montadora ÷ Imobilizado líquido',
+   interp:'Parcela da frota financiada via crédito de fornecedores (montadoras). Um indicador de capital de giro: quanto maior, mais a aquisição de veículos é sustentada por prazo com a montadora, aliviando dívida financeira. Para as listadas usa-se o saldo de fornecedores (a montadora é o principal componente); para a Stellantis, a linha reportada de Custo com a Montadora.'}
+];
+
+function heatColor(v,row,dir){
+  const vals=row.filter(x=>x!=null&&isFinite(x));
+  if(!vals.length||v==null)return ['transparent','inherit'];
+  if(dir===0)return ['rgba(36,55,130,0.10)','var(--navy)']; // indicador neutro (sem melhor/pior)
+  const min=Math.min(...vals),max=Math.max(...vals);
+  if(max===min)return ['var(--navy-soft)','var(--navy)'];
+  let t=(v-min)/(max-min);            // 0..1
+  if(dir<0)t=1-t;                     // invert when lower=better
+  // t=1 good (green), t=0 bad (red)
+  const g=[31,138,91], r=[192,57,43], mid=[214,180,40];
+  let col; if(t>=.5){const f=(t-.5)*2;col=mid.map((m,i)=>Math.round(m+(g[i]-m)*f));}
+  else{const f=t*2;col=r.map((rr,i)=>Math.round(rr+(mid[i]-rr)*f));}
+  const bg=`rgba(${col[0]},${col[1]},${col[2]},0.16)`;
+  const fg=`rgb(${Math.round(col[0]*.7)},${Math.round(col[1]*.7)},${Math.round(col[2]*.7)})`;
+  return [bg,fg];
+}
+
+function kpiFmt(kind,v){return kind==='mult'?mult(v,1):pct(v,1);}
+
+function renderKPI(a){
+  const y=state.year;
+  const K=Object.fromEntries(a.map(c=>[c,kpis(c,y)]));
+  // matrix table
+  let head=`<tr><th>Indicador · ${y}</th>${a.map(co=>`<th class="sep">${logoBadge(co,12)}</th>`).join('')}<th>Melhor</th></tr>`;
+  let body='';
+  KDEF.forEach(d=>{
+    const key=d.alias||d.key;
+    const rowVals=a.map(co=>K[co][key]);
+    const best=d.dir===0?null:a.map((co,i)=>[co,rowVals[i]]).filter(x=>x[1]!=null).sort((p,q)=>d.dir<0?p[1]-q[1]:q[1]-p[1])[0];
+    body+=`<tr><td class="metric">${d.label}</td>`;
+    a.forEach((co,i)=>{
+      const v=rowVals[i];const [bg,fg]=heatColor(v,rowVals,d.dir);
+      body+=`<td class="sep"><span class="heat num" style="background:${bg};color:${fg}">${kpiFmt(d.kind,v)}</span></td>`;
+    });
+    body+=`<td style="font-weight:700;color:${best?INK[best[0]]:'inherit'}">${best?best[0]:'–'}</td></tr>`;
+  });
+
+  // explanatory cards w/ small multiples
+  let cards='';
+  KDEF.filter(d=>d.key!=='plAtivo2').forEach((d,idx)=>{
+    cards+=`<div class="card"><h3><span class="barK"></span>${d.label}</h3>
+      <div class="sub"><b>Fórmula:</b> ${d.formula}</div>
+      <div class="chwrap sm"><canvas id="k_${d.key}"></canvas></div>
+      <p class="note" style="margin-top:10px">${d.interp}</p></div>`;
+  });
+
+  C().innerHTML=`
+   <div class="card"><h3><span class="barK"></span>Matriz de KPIs — ${a.length} empresas</h3>
+     <div class="sub">Heatmap: verde = melhor posição relativa, vermelho = pior · alavancagem (DL/…) lê-se "menor é melhor"</div>
+     <div class="scroll"><table class="tbl">${head}${body}</table></div>
+     <div class="callout" style="margin-top:12px">Indicadores de estrutura de capital, alavancagem e retorno são medidos <b>somente no consolidado</b> — dívida, patrimônio e ativos não são segmentados por linha de negócio. Por isso o filtro de recorte não altera esta página.</div>
+   </div>
+
+   <div class="sectionhead"><span class="n">KPI</span><h2>Cada indicador, lado a lado</h2><p>Fórmula, leitura e comparação entre os pares</p></div>
+   <div class="grid g2">${cards}</div>
+
+   <div class="sectionhead"><span class="n">⚑</span><h2>Síntese: criação de valor</h2><p>ROIC vs. custo da dívida</p></div>
+   <div class="grid g2">
+     <div class="card span2" style="grid-column:span 2"><h3><span class="barK"></span>Spread de valor — ROIC menos custo da dívida</h3>
+       <div class="sub">Barras acima de zero criam valor sobre o capital de terceiros; abaixo de zero, destroem · ${y}</div>
+       <div class="chwrap"><canvas id="kSpread"></canvas></div>
+       <ul class="clean" id="kpiInsights" style="margin-top:14px"></ul>
+     </div>
+   </div>`;
+
+  // small multiples
+  KDEF.filter(d=>d.key!=='plAtivo2').forEach(d=>{
+    const key=d.alias||d.key;
+    const vals=a.map(co=>K[co][key]);
+    chart('k_'+d.key,{type:'bar',data:{labels:a,datasets:[{data:vals,backgroundColor:a.map(co=>COL[co]),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:42}]},
+      options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>kpiFmt(d.kind,c.parsed.y)}}},
+        scales:{x:{grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:11}}},
+          y:{grid:{color:'#eef0f7'},ticks:{callback:v=>d.kind==='mult'?v.toFixed(1)+'x':pct(v,1)},beginAtZero:true}}}});
+  });
+
+  // spread chart
+  const spreads=a.map(co=>K[co].roic-Math.abs(K[co].resfinDl));
+  chart('kSpread',{type:'bar',data:{labels:a,datasets:[{data:spreads,backgroundColor:spreads.map(s=>s>=0?'#1f8a5b':'#c0392b'),borderRadius:5,maxBarThickness:54}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'Spread: '+pct(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:12}}},y:{grid:{color:'#eef0f7'},ticks:{callback:v=>pct(v,1)}}}}});
+
+  kpiInsights(a,y,K);
+}
+
+function kpiInsights(a,y,K){
+  const el=document.getElementById('kpiInsights');if(!el)return;
+  const items=[];
+  const lev=a.slice().sort((x,z)=>K[x].dlEbitda-K[z].dlEbitda);
+  items.push(['g',`<b>${lev[0]}</b> combina a menor alavancagem (${mult(K[lev[0]].dlEbitda)}) com a maior capitalização (PL/Ativo ${pct(K[lev[0]].plAtivo)}) — o balanço mais defensivo do grupo.`]);
+  const bestRoic=a.map(c=>[c,K[c].roic]).sort((p,q)=>q[1]-p[1])[0];
+  items.push(['',`<b>${bestRoic[0]}</b> tem o maior ROIC (${pct(bestRoic[1])}), mas convém checar à custa de qual alavancagem (DL/PL de ${mult(K[bestRoic[0]].dlPl)}).`]);
+  const neg=a.filter(c=>(K[c].roic-Math.abs(K[c].resfinDl))<0);
+  if(neg.length)items.push(['r',`<b>Spread negativo</b> em ${neg.join(', ')}: o ROIC não cobre o custo da dívida (~${pct(Math.abs(K[neg[0]].resfinDl),0)}). Cada real adicional de dívida destrói valor até a Selic ceder ou os contratos serem reprecificados.`]);
+  else items.push(['g',`Todos os players exibem spread ROIC – custo da dívida positivo em ${y}.`]);
+  items.push(['o',`<b>Alavancas de valor:</b> (1) desalavancar via geração de caixa e disciplina de capex de frota; (2) reprecificar contratos de GTF repassando juros; (3) alongar e baratear o funding. Quem girar essas três alavancas primeiro reabre o spread positivo.`]);
+  el.innerHTML=items.map(([t,h])=>`<li><span class="tag ${t}">${t==='g'?'+':t==='r'?'!':t==='o'?'△':'•'}</span><span>${h}</span></li>`).join('');
+}
+
+/* ---------- VOLUME DE FROTA ---------- */
+function vol(co,scope,y){const v=VOL[co];return v&&v[scope]?v[scope][y]:null;}
+function volGrowth(co,scope){const a=vol(co,scope,'2024'),b=vol(co,scope,'2025');return (a&&b!=null)?(b-a)/a:null;}
+
+function renderVolume(a){
+  const y=state.year, segMode=state.seg==='gtf';
+  const segLbl=segMode?'GTF':'Consolidado';
+  // tiles: frota (recorte) + a/a + share GTF
+  let tiles='';
+  a.forEach(co=>{
+    const scope=segMode?'gtf':'total';
+    const f=vol(co,scope,y); const g=volGrowth(co,scope);
+    const tot=vol(co,'total',y), gt=vol(co,'gtf',y);
+    const share=(tot&&gt!=null)?gt/tot:null;
+    tiles+=`<div class="kpi"><div class="edge" style="background:${COL[co]}"></div>
+      <div class="co"><span class="dot" style="background:${COL[co]};border:1px solid ${BORD[co]}"></span>${logoBadge(co,13)}</div>
+      <div class="big num">${f==null?'–':f.toLocaleString('pt-BR')}</div><div class="lbl">veículos · frota ${segMode?'GTF':'total'} · ${y}</div>
+      <div class="delta ${g>=0?'up':'down'}">${g==null?'':(g>=0?'▲':'▼')+' '+pct(Math.abs(g))+' a/a'}</div>
+      <div class="lbl" style="margin-top:8px">GTF representa <b class="num">${share==null?'–':pct(share,0)}</b> da frota</div>
+    </div>`;
+  });
+
+  // table
+  let head=`<tr><th>Empresa</th><th>Frota total 2024</th><th>Frota total 2025</th><th>Δ a/a</th><th>GTF 2025</th><th>RAC/Outros 2025</th><th>% GTF</th></tr>`;
+  let trs='';
+  a.forEach(co=>{
+    const t24=vol(co,'total','2024'),t25=vol(co,'total','2025'),g=volGrowth(co,'total');
+    const g25=vol(co,'gtf','2025'),rac=(t25!=null&&g25!=null)?t25-g25:null,sh=(t25&&g25!=null)?g25/t25:null;
+    trs+=`<tr><td class="metric">${logoBadge(co,12)}</td>
+      <td><span class="num">${t24==null?'–':t24.toLocaleString('pt-BR')}</span></td>
+      <td><span class="num">${t25==null?'–':t25.toLocaleString('pt-BR')}</span></td>
+      <td><span class="num" style="color:${g>=0?'var(--good)':'var(--bad)'}">${g==null?'–':(g>=0?'+':'')+pct(g)}</span></td>
+      <td><span class="num">${g25==null?'–':g25.toLocaleString('pt-BR')}</span></td>
+      <td><span class="num">${rac==null?'–':rac.toLocaleString('pt-BR')}</span></td>
+      <td><span class="num">${sh==null?'–':pct(sh,0)}</span></td></tr>`;
+  });
+
+  C().innerHTML=`
+   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(186px,1fr))">${tiles}</div>
+
+   <div class="sectionhead"><span class="n">01</span><h2>Escala da frota</h2><p>Tamanho e composição GTF × RAC · ${y}</p></div>
+   <div class="grid g2">
+     <div class="card"><h3><span class="barK"></span>Frota total por empresa</h3><div class="sub">veículos · fim do período · ${y}</div><div class="chwrap tall"><canvas id="volTotal"></canvas></div></div>
+     <div class="card"><h3><span class="barK"></span>Composição: GTF × RAC/Outros</h3><div class="sub">% da frota total · ${y} · Stellantis e LM são essencialmente GTF</div><div class="chwrap tall"><canvas id="volMix"></canvas></div></div>
+   </div>
+
+   <div class="sectionhead"><span class="n">02</span><h2>Crescimento &amp; produtividade</h2><p>Variação da frota e geração por veículo</p></div>
+   <div class="grid g2">
+     <div class="card"><h3><span class="barK"></span>Crescimento da frota total</h3><div class="sub">variação 2024 → 2025</div><div class="chwrap"><canvas id="volGrow"></canvas></div></div>
+     <div class="card"><h3><span class="barK"></span>Geração por veículo — ${segLbl}</h3><div class="sub">R$ por veículo/ano · ${y} · ${segMode?'frota e resultado de GTF':'frota e resultado consolidados'}</div><div class="chwrap"><canvas id="volProd"></canvas></div></div>
+   </div>
+
+   <div class="sectionhead"><span class="n">03</span><h2>Mapa de frota</h2><p>Detalhamento e leitura</p></div>
+   <div class="grid g2" style="grid-template-columns:1.1fr .9fr">
+     <div class="card"><h3><span class="barK"></span>Frota por empresa e segmento</h3><div class="sub">veículos · fim do período</div><div class="scroll"><table class="tbl">${head}${trs}</table></div>
+       <div class="callout" style="margin-top:12px">Frotas de <b>fim de período</b>. A produtividade por veículo (receita/EBITDA por carro) deve ser lida junto do mix: operações com mais <b>RAC</b> faturam mais por carro (diária), enquanto <b>GTF</b> puro tem ticket menor porém receita mais previsível e contratada.</div>
+     </div>
+     <div class="card"><h3><span class="barK"></span>Leitura de volume</h3><ul class="clean" id="volInsights"></ul></div>
+   </div>`;
+
+  // ---- charts ----
+  const sorted=a.slice().sort((x,z)=>(vol(z,'total',y)||0)-(vol(x,'total',y)||0));
+  chart('volTotal',{type:'bar',data:{labels:sorted,datasets:[{label:'Frota total',data:sorted.map(co=>vol(co,'total',y)),backgroundColor:sorted.map(co=>COL[co]),borderColor:sorted.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:30}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},barLabels:{color:'#243782'},tooltip:{callbacks:{label:c=>c.parsed.x.toLocaleString('pt-BR')+' veículos'}}},
+      scales:{x:{grid:{display:false},ticks:{callback:v=>fmtK(v)}},y:{grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:12}}}}}});
+
+  const mixPct=(co,scope)=>{const t=vol(co,'total',y),g=vol(co,'gtf',y);if(t==null||g==null||!t)return null;return scope==='gtf'?g/t*100:Math.max(0,(t-g))/t*100;};
+  chart('volMix',{type:'bar',data:{labels:a,datasets:[
+    {label:'GTF',data:a.map(co=>mixPct(co,'gtf')),backgroundColor:a.map(co=>COL[co]),borderColor:a.map(co=>BORD[co]),borderWidth:1,stack:'s',maxBarThickness:34},
+    {label:'RAC / Outros',data:a.map(co=>mixPct(co,'rac')),backgroundColor:a.map(co=>COL[co]+'44'),borderColor:a.map(co=>BORD[co]),borderWidth:1,stack:'s',maxBarThickness:34}
+  ]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'rectRounded',padding:14,font:{family:"'Encode Sans'",weight:'600'}}},barLabels:{fmt:v=>(v==null?'–':v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%')},tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.x==null?'–':c.parsed.x.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%')}}},
+    scales:{x:{stacked:true,min:0,max:100,grid:{display:false},ticks:{callback:v=>v+'%'}},y:{stacked:true,grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:12}}}}}});
+
+  chart('volGrow',{type:'bar',data:{labels:a,datasets:[{data:a.map(co=>volGrowth(co,'total')),backgroundColor:a.map(co=>{const g=volGrowth(co,'total');return g>=0?'#1f8a5b':'#c0392b';}),borderRadius:5,maxBarThickness:50}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.parsed.y>=0?'+':'')+pct(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:12}}},y:{grid:{color:'#eef0f7'},ticks:{callback:v=>pct(v,1)}}}}});
+
+  const scope=segMode?'gtf':'total';
+  chart('volProd',{type:'bar',data:{labels:a,datasets:[
+    {label:'Receita / veículo',data:a.map(co=>perUnit(blk(co,y).receita,vol(co,scope,y))),backgroundColor:a.map(co=>COL[co]),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:40},
+    {label:'EBITDA / veículo',data:a.map(co=>perUnit(blk(co,y).ebitda,vol(co,scope,y))),backgroundColor:a.map(co=>COL[co]+'55'),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:40}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'rectRounded',padding:14,font:{family:"'Encode Sans'",weight:'600'}}},tooltip:{callbacks:{label:c=>c.dataset.label+': R$ '+fmtPU(c.parsed.y)}}},
+    scales:{x:{grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:12}}},y:{grid:{color:'#eef0f7'},ticks:{callback:v=>'R$ '+fmtPU(v)}}}}});
+
+  volInsights(a,y);
+}
+
+function volInsights(a,y){
+  const el=document.getElementById('volInsights');if(!el)return;
+  const items=[];
+  const bySize=a.map(c=>[c,vol(c,'total',y)]).filter(x=>x[1]!=null).sort((p,q)=>q[1]-p[1]);
+  if(bySize.length>=2)items.push(['',`<b>Escala:</b> ${bySize[0][0]} opera a maior frota (${bySize[0][1].toLocaleString('pt-BR')} veículos) — cerca de ${ (bySize[0][1]/bySize[bySize.length-1][1]).toLocaleString('pt-BR',{maximumFractionDigits:0}) }× a menor (${bySize[bySize.length-1][0]}).`]);
+  const grow=a.map(c=>[c,volGrowth(c,'total')]).filter(x=>x[1]!=null).sort((p,q)=>q[1]-p[1]);
+  if(grow.length)items.push(['g',`<b>Expansão:</b> ${grow[0][0]} cresceu a frota ${pct(grow[0][1])} a/a, o maior avanço do grupo; ${grow[grow.length-1][0]} reduziu (${pct(grow[grow.length-1][1])}), sinal de gestão mais defensiva de capex.`]);
+  // productivity consolidado
+  const prod=a.map(c=>[c,perUnit(pl(c,y).receita,vol(c,'total',y))]).filter(x=>x[1]!=null).sort((p,q)=>q[1]-p[1]);
+  if(prod.length)items.push(['',`<b>Produtividade:</b> a receita por veículo varia de R$ ${fmtPU(prod[prod.length-1][1])} (${prod[prod.length-1][0]}) a R$ ${fmtPU(prod[0][1])} (${prod[0][0]}) — diferença puxada pelo mix RAC × GTF.`]);
+  const stla=a.includes('Stellantis');
+  if(stla)items.push(['o',`<b>Stellantis:</b> frota praticamente dobrou (10,2 mil → 21,1 mil). Por ser fim de período em rampa acelerada, a receita por veículo aparece subestimada — a base média do ano foi bem menor que a de dezembro.`]);
+  el.innerHTML=items.map(([t,h])=>`<li><span class="tag ${t}">${t==='g'?'+':t==='r'?'!':t==='o'?'△':'•'}</span><span>${h}</span></li>`).join('');
+}
+
+/* ---------- KPIs GERENCIAIS ---------- */
+// kind: 'reais' (R$/veículo) ou 'pct'. dir: +1 maior melhor / -1 menor melhor
+const MDEF=[
+  {key:'recVeic', kind:'reais', dir:1, label:'Receita líquida / veículo',
+   formula:'Receita líquida ÷ frota total (fim do período)',
+   interp:'Faturamento médio anual por carro. Operações com mais RAC (diária) faturam mais por veículo; GTF puro tem ticket menor, porém contratado e previsível.',
+   fn:(co,y)=>perUnit(pl(co,y).receita, fleetTotal(co,y))},
+  {key:'custosRec', kind:'pct', dir:-1, label:'Custos operacionais / Receita líquida',
+   formula:'Custos operacionais ÷ Receita líquida',
+   interp:'Peso dos custos diretos (operação e depreciação alocada em custos) sobre a receita. Quanto menor, maior a margem bruta.',
+   fn:(co,y)=>Math.abs(pl(co,y).custos)/pl(co,y).receita},
+  {key:'gnaRec', kind:'pct', dir:-1, label:'G&A / Receita líquida',
+   formula:'Despesas operacionais (G&A) ÷ Receita líquida',
+   interp:'Eficiência administrativa e comercial. Empresas mais enxutas diluem melhor a estrutura sobre a receita. As definições de despesa operacional variam por empresa — leia o ranking, não as diferenças de poucos p.p.',
+   fn:(co,y)=>Math.abs(pl(co,y).gna)/pl(co,y).receita},
+  {key:'ebitdaRec', kind:'pct', dir:1, label:'EBITDA / Receita líquida',
+   formula:'EBITDA ÷ Receita líquida',
+   interp:'Margem de geração de caixa operacional. É a mais alta do P&L no setor, pois adiciona de volta a forte depreciação da frota.',
+   fn:(co,y)=>pl(co,y).ebitda/pl(co,y).receita},
+  {key:'resfinRec', kind:'pct', dir:1, label:'Resultado financeiro / Receita líquida',
+   formula:'Resultado financeiro ÷ Receita líquida',
+   interp:'Quanto da receita é consumido pelo serviço da dívida. Em 2025, com Selic elevada, é o principal vetor de compressão do lucro líquido — mais negativo, pior.',
+   fn:(co,y)=>pl(co,y).res_fin/pl(co,y).receita},
+  {key:'ebitRec', kind:'pct', dir:1, label:'EBIT / Receita líquida',
+   formula:'EBIT ÷ Receita líquida',
+   interp:'Margem operacional após a depreciação da frota — mede a rentabilidade real da operação antes de juros e impostos.',
+   fn:(co,y)=>pl(co,y).ebit/pl(co,y).receita}
+];
+function mval(d,co,y){try{return d.fn(co,y);}catch(e){return null;}}
+function mfmt(d,v){return d.kind==='reais'?(v==null?'–':'R$ '+fmtPU(v)):pct(v,1);}
+
+function renderMgmt(a){
+  const y=state.year;
+  // matrix
+  let head=`<tr><th>Indicador gerencial · ${y}</th>${a.map(co=>`<th class="sep">${logoBadge(co,12)}</th>`).join('')}<th>Melhor</th></tr>`;
+  let body='';
+  MDEF.forEach(d=>{
+    const rowVals=a.map(co=>mval(d,co,y));
+    const best=a.map((co,i)=>[co,rowVals[i]]).filter(x=>x[1]!=null).sort((p,q)=>d.dir<0?p[1]-q[1]:q[1]-p[1])[0];
+    body+=`<tr><td class="metric">${d.label}</td>`;
+    a.forEach((co,i)=>{
+      const v=rowVals[i];const [bg,fg]=heatColor(v,rowVals,d.dir);
+      body+=`<td class="sep"><span class="heat num" style="background:${bg};color:${fg}">${mfmt(d,v)}</span></td>`;
+    });
+    body+=`<td style="font-weight:700;color:${best?INK[best[0]]:'inherit'}">${best?best[0]:'–'}</td></tr>`;
+  });
+
+  let cards='';
+  MDEF.forEach(d=>{
+    cards+=`<div class="card"><h3><span class="barK"></span>${d.label}</h3>
+      <div class="sub"><b>Fórmula:</b> ${d.formula}</div>
+      <div class="chwrap sm"><canvas id="m_${d.key}"></canvas></div>
+      <p class="note" style="margin-top:10px">${d.interp}</p></div>`;
+  });
+
+  C().innerHTML=`
+   <div class="card"><h3><span class="barK"></span>Matriz gerencial — ${a.length} empresas</h3>
+     <div class="sub">Decomposição da receita líquida · heatmap: verde = melhor posição relativa, vermelho = pior · ${y}</div>
+     <div class="scroll"><table class="tbl">${head}${body}</table></div>
+     <div class="callout" style="margin-top:12px">Ratios calculados no <b>consolidado</b> de cada empresa. As linhas de custo e G&amp;A seguem a classificação reportada por cada companhia, que pode diferir — a leitura mais robusta é a ordenação relativa, não diferenças de poucos pontos percentuais.</div>
+   </div>
+
+   <div class="sectionhead"><span class="n">GER</span><h2>Cada ratio, lado a lado</h2><p>Decomposição da margem da receita ao EBIT</p></div>
+   <div class="grid g2">${cards}</div>
+
+   <div class="sectionhead"><span class="n">★</span><h2>Leitura gerencial</h2><p>Onde cada player ganha ou perde margem</p></div>
+   <div class="grid g2"><div class="card span2" style="grid-column:span 2"><ul class="clean" id="mgmtInsights"></ul></div></div>`;
+
+  MDEF.forEach(d=>{
+    const vals=a.map(co=>mval(d,co,y));
+    chart('m_'+d.key,{type:'bar',data:{labels:a,datasets:[{data:vals,backgroundColor:a.map(co=>COL[co]),borderColor:a.map(co=>BORD[co]),borderWidth:1,borderRadius:5,maxBarThickness:42}]},
+      options:{maintainAspectRatio:false,plugins:{legend:{display:false},barLabels:{fmt:v=>d.kind==='reais'?fmtPU(v):pct(v,1)},tooltip:{callbacks:{label:c=>mfmt(d,c.parsed.y)}}},
+        scales:{x:{grid:{display:false},ticks:{font:{family:"'Encode Sans Condensed'",weight:'700',size:11}}},
+          y:{grid:{display:false},ticks:{callback:v=>d.kind==='reais'?fmtPU(v):pct(v,1)}}}}});
+  });
+
+  mgmtInsights(a,y);
+}
+
+function mgmtInsights(a,y){
+  const el=document.getElementById('mgmtInsights');if(!el)return;
+  const items=[];
+  const rv=a.map(c=>[c,mval(MDEF[0],c,y)]).filter(x=>x[1]!=null).sort((p,q)=>q[1]-p[1]);
+  if(rv.length)items.push(['',`<b>Receita por veículo:</b> ${rv[0][0]} fatura R$ ${fmtPU(rv[0][1])} por carro/ano, ante R$ ${fmtPU(rv[rv.length-1][1])} de ${rv[rv.length-1][0]} — diferença puxada pelo mix RAC × GTF.`]);
+  const eb=a.map(c=>[c,pl(c,y).ebitda/pl(c,y).receita]).sort((p,q)=>q[1]-p[1]);
+  items.push(['g',`<b>Margem EBITDA:</b> ${eb[0][0]} lidera (${pct(eb[0][1])}); ${eb[eb.length-1][0]} fecha o grupo (${pct(eb[eb.length-1][1])}).`]);
+  const fin=a.map(c=>[c,pl(c,y).res_fin/pl(c,y).receita]).sort((p,q)=>p[1]-q[1]);
+  items.push(['r',`<b>Peso financeiro:</b> em ${fin[0][0]} o resultado financeiro consome ${pct(Math.abs(fin[0][1]))} da receita — a maior mordida; é o elo entre uma boa margem operacional e um lucro líquido espremido.`]);
+  const conv=a.map(c=>[c,pl(c,y).ebit/pl(c,y).receita]).sort((p,q)=>q[1]-p[1]);
+  items.push(['o',`<b>Margem EBIT:</b> após a depreciação da frota, ${conv[0][0]} mantém a maior margem operacional (${pct(conv[0][1])}). A depreciação é o custo que mais separa EBITDA de EBIT no setor.`]);
+  el.innerHTML=items.map(([t,h])=>`<li><span class="tag ${t}">${t==='g'?'+':t==='r'?'!':t==='o'?'△':'•'}</span><span>${h}</span></li>`).join('');
+}
+
+/* ---------- METODOLOGIA ---------- */
+function renderMeta(){
+  C().innerHTML=`
+  <div class="grid g2">
+    <div class="card"><h3><span class="barK"></span>Padronização contábil entre empresas</h3>
+      <div class="metawrap">
+        <p>As quatro empresas reportam em padrões e níveis de abertura distintos. Para tornar a DRE e os KPIs comparáveis, foram aplicados os seguintes ajustes:</p>
+        <h4>Unidade monetária</h4>
+        <ul><li>LM publica em <b>R$ mil</b>; convertido para <b>R$ milhões</b> (÷1.000). Demais já em R$ milhões.</li></ul>
+        <h4>IFRS-16 (arrendamentos)</h4>
+        <ul><li>Quando há versão "com IFRS-16", ela é mantida para EBITDA/EBIT, mas os <b>passivos de arrendamento são excluídos da Dívida Líquida</b>, deixando apenas dívida financeira (debêntures, bancos, bonds) líquida de caixa e aplicações. Isso evita inflar a alavancagem de quem capitaliza muitos contratos.</li></ul>
+        <h4>Definição de Dívida Líquida</h4>
+        <ul><li>LM e Unidas: usada a <b>dívida líquida reportada</b> pela companhia.</li><li>Localiza e Movida: <b>recalculada de forma consistente</b> = dívida financeira bruta − (caixa + aplicações/títulos), para uniformizar o critério.</li></ul>
+        <h4>Segmentação GTF × Consolidado</h4>
+        <ul><li>Gestão de Frota isolada da divulgação por segmento de cada empresa. Indicadores de receita, EBITDA e margem existem por segmento; <b>dívida, PL e ativos só no consolidado</b> — logo alavancagem e retorno são sempre consolidados.</li><li><b>GTF considera apenas frotas leves.</b> Unidas: somente <b>GTF Leves</b> (exclui GTF Pesados e venda de ativos). Localiza/Movida: Gestão de Frotas (essencialmente leves). LM: Terceirização de Frotas (não há abertura Leves/Pesados na DRE por segmento). Stellantis: locadora de frota.</li><li>LM: ~96% da receita é GTF — consolidado e segmento quase coincidem.</li></ul>
+      </div>
+    </div>
+    <div class="card"><h3><span class="barK"></span>Premissas dos indicadores</h3>
+      <div class="metawrap">
+        <h4>ROIC</h4>
+        <ul><li>NOPAT = EBIT × (1 − <b>34%</b>), alíquota combinada IRPJ+CSLL assumida uniformemente por falta de abertura de imposto efetivo por empresa/ano.</li><li>Capital investido = Dívida Líquida + Patrimônio Líquido (fim de período).</li></ul>
+        <h4>ROE</h4>
+        <ul><li>Lucro Líquido ÷ PL de fechamento. Não foi usado PL médio por indisponibilidade de saldos de abertura padronizados.</li></ul>
+        <h4>Custo da dívida (proxy)</h4>
+        <ul><li>Resultado Financeiro ÷ Dívida Líquida — aproximação; o resultado financeiro inclui itens não-caixa (variação cambial, marcação) que podem distorcer pontualmente.</li></ul>
+        <h4>Linhas implícitas da DRE</h4>
+        <ul><li><b>Desp. oper./ajustes</b> = EBITDA − Lucro Bruto (concilia SG&amp;A e reclassificações de depreciação).</li><li><b>IR/CSLL &amp; outros</b> = Lucro Líquido − EBIT − Resultado Financeiro.</li></ul>
+        <h4>Período</h4>
+        <ul><li>FY2024 e FY2025 (acumulados anuais); séries trimestrais de 1T24 a 1T26 para tendência.</li></ul>
+        <h4>Contas a pagar Montadora / Imobilizado</h4>
+        <ul><li>Stellantis: linha reportada <b>Custo com a Montadora</b>. Demais empresas: saldo de <b>Fornecedores</b> do balanço (Movida: "Suppliers"), pois o detalhe específico da montadora é divulgado apenas nas notas explicativas do ITR — a montadora é o principal componente desse saldo nas locadoras.</li></ul>
+        <h4>KPIs Gerenciais</h4>
+        <ul><li>Decomposição da receita líquida (custos, G&amp;A, EBITDA, resultado financeiro, EBIT) e receita por veículo, no consolidado. A linha de <b>G&amp;A / despesas operacionais</b> segue a classificação de cada empresa (Localiza: total de despesas operacionais; demais: linha de SG&amp;A/G&amp;A reportada), portanto a comparação privilegia a ordenação relativa.</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sectionhead"><span class="n">★</span><h2>Confiabilidade &amp; coleta de dados</h2><p>Como elevar a robustez do benchmarking</p></div>
+  <div class="grid g2">
+    <div class="card"><h3><span class="barK"></span>Melhorias sugeridas no processo</h3>
+      <div class="metawrap"><ul>
+        <li><b>Fonte única estruturada:</b> migrar da extração manual de releases/ITRs para um repositório padronizado (planilha-mestra ou base) com plano de contas comum às quatro empresas.</li>
+        <li><b>Mapa de conciliação por empresa:</b> documentar de→para de cada linha reportada para a linha padronizada, com responsável e data.</li>
+        <li><b>Checagem automática:</b> validar que a soma dos trimestres bate com o anual (já aplicado nesta base) e que subtotais fecham (Receita − Custos = Lucro Bruto).</li>
+        <li><b>Imposto efetivo real:</b> capturar IR/CSLL por empresa para substituir a alíquota fixa de 34% no ROIC.</li>
+        <li><b>PL médio:</b> coletar saldos de abertura para ROE/ROIC com base em capital médio.</li>
+        <li><b>Versão sem IFRS-16:</b> sempre que disponível, manter as duas visões para sensibilidade da alavancagem.</li>
+        <li><b>Governança:</b> versionamento e trilha de auditoria a cada atualização trimestral, com aprovação de FP&amp;A.</li>
+      </ul></div>
+    </div>
+    <div class="card"><h3><span class="barK"></span>Limitações &amp; próximos passos</h3>
+      <div class="metawrap">
+        <ul>
+          <li>Diferenças residuais de classificação entre empresas podem persistir mesmo após padronização — leituras de nível (ranking) são mais robustas que diferenças de poucos pontos-base.</li>
+          <li>Resultado financeiro pode conter não recorrentes; idealmente separar juros de dívida de variações cambiais/hedge.</li>
+          <li>Seminovos e RAC não foram abertos individualmente — foco do recorte é <b>GTF × Consolidado</b>, conforme solicitado.</li>
+        </ul>
+        <h4>Stellantis Locadora — incluída</h4>
+        <p>A 5ª empresa foi adicionada e aparece em todos os filtros, tabelas, gráficos e no mapa de risco-retorno. Premissas específicas: DRE convertida de R$ mil para R$ milhões; balanço dos Indicadores convertido de R$ para R$ milhões (fim de período 4T24/4T25); por ser uma <b>locadora de frota</b> sem abertura por segmento, o recorte GTF é tratado como igual ao consolidado. A DRE segue a estrutura informada: <b>EBIT → Resultado Financeiro → AOI (Resultado Ajustado = EBIT + Res. Financeiro) → IR/CSLL → Lucro Líquido</b>. O forte aporte de capital em 2025 (PL de ~R$ 85 mi para ~R$ 514 mi) explica a queda da alavancagem no ano.</p>
+        <p>A linha <b>AOI (Resultado Ajustado)</b> foi adicionada à DRE de todas as empresas como o resultado antes do IR (EBIT + Resultado Financeiro), mantendo a comparabilidade.</p>
+        <h4>Volume de frota &amp; "por veículo"</h4>
+        <ul>
+          <li>Frotas de <b>fim de período</b> extraídas dos dados operacionais de cada empresa (Localiza, Movida, Unidas, LM) e do arquivo da Stellantis. GTF: Unidas = <b>GTF Leves</b>; LM = Terceirização total; Movida/Localiza = Gestão de Frotas; Stellantis = frota total.</li>
+          <li><b>DRE de GTF até o lucro líquido:</b> o segmento é reportado até o EBIT. Abaixo do EBIT, Resultado Financeiro, AOI, IR/CSLL e Lucro Líquido são <b>proporcionais</b> — alocados pela participação da frota de GTF no total (frota GTF ÷ frota total). Essas linhas aparecem destacadas em <b>laranja claro</b> e devem ser lidas como estimativa, não como valor reportado por segmento.</li>
+          <li><b>Por veículo</b> (na DRE e no painel de Volume) = valor anual ÷ frota de fim de período (total no consolidado; GTF no recorte GTF), expresso em R$ mil/veículo. Em frotas em rápida expansão, o uso de saldo de fim de período subestima o indicador frente a uma base média.</li>
+        </ul>
+        <div class="callout"><b>Comparabilidade direta:</b> Stellantis segue as mesmas premissas dos pares (custo do capital via resultado financeiro, tax 34%, PL de fechamento), tornando seu posicionamento no benchmarking legítimo.</div>
+        <h4>Identidade visual</h4>
+        <p>As cores seguem o padrão de marca: <b style="color:#046C2F">Localiza</b>, <b style="color:#FF4F01">Movida</b>, <b style="color:#007ED2">Unidas</b>, <b style="color:#9a9a9a">LM</b> (#D9D9D9) e <b style="color:#243782">Stellantis</b> (#243782).</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- chips ---------- */
+function buildChips(){
+  const el=document.getElementById('chips');if(!el)return;
+  el.innerHTML=ORDER.map(co=>`<div class="chip ${state.on.has(co)?'on':'off'}" data-co="${co}" style="${state.on.has(co)?'color:'+INK[co]:''}"><span class="dot" style="background:${COL[co]};border:1px solid ${BORD[co]}"></span>${co}</div>`).join('');
+  el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const co=c.dataset.co;
+    if(state.on.has(co)){ if(state.on.size>1) state.on.delete(co); }
+    else state.on.add(co);
+    render();
+  });
+}
+
+/* ---------- init / events ---------- */
+function init(){
+  document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{state.page=b.dataset.pg;render();});
+  document.querySelectorAll('#yearSeg button').forEach(b=>b.onclick=()=>{
+    state.year=b.dataset.y;
+    document.querySelectorAll('#yearSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    render();
+  });
+  document.querySelectorAll('#segSeg button').forEach(b=>b.onclick=()=>{
+    state.seg=b.dataset.s;
+    document.querySelectorAll('#segSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    render();
+  });
+  render();
+}
+if(document.readyState!=='loading')init();else document.addEventListener('DOMContentLoaded',init);
+
+</script>
+</body>
+</html>
